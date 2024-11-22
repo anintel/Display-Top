@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "intel_drrs.h": "c",
+        "intel_fb.h": "c",
+        "errno.h": "c"
+    }
+}

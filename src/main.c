@@ -3,25 +3,31 @@
 #include "summary.h"
 #include "breadcrumb.h"
 
-int main() {
+int main()
+{
     WINDOW *summary, *menu;
 
     initscr();
-    start_color(); 
+    start_color();
     cbreak();
-    noecho();    
+    noecho();
     keypad(stdscr, TRUE);
 
-    init_pair(1, COLOR_WHITE, COLOR_BLACK); 
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
     bkgd(COLOR_PAIR(1));
 
     int level = 0;
-    char **path;
-    summary = display_summary(level);
 
-    
+    summary = newwin(getmaxy(stdscr) / 2, getmaxx(stdscr), 0, 0);
+    keypad(summary, TRUE);
+    scrollok(summary, TRUE);
     wrefresh(summary);
+
+    menu = newwin(getmaxy(stdscr) / 2, getmaxx(stdscr), getmaxy(stdscr) / 2, 0);
+    keypad(menu, TRUE);
+    mvwprintw(menu, 1, 1, "MAIN MENU");
+    wrefresh(menu);
 
     const char *choices[] = {
         "Display Configuration",
@@ -35,18 +41,12 @@ int main() {
         "System State",
         "Read Registers",
         "Get MMIO",
-        "Trigger a Sequence"
-    };
+        "Trigger a Sequence"};
 
     int n_choices = sizeof(choices) / sizeof(choices[0]);
+    int end;
 
-    WINDOW *win = newwin(getmaxy(stdscr) / 2, getmaxx(stdscr), getmaxy(stdscr) / 2, 0);
-    box(win, 0, 0);
-    keypad(win, TRUE);
-    mvwprintw(win, 1, 1, "USER MENU");
-    wrefresh(win);
-
-    CreateMenu(win, choices, n_choices);
+    CreateMainMenu(menu, summary, choices, n_choices);
 
     endwin();
     return 0;
