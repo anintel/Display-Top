@@ -1,22 +1,19 @@
-#include <xf86drm.h>
-#include <xf86drmMode.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 #include <ncurses.h>
 
-#include "summary.h"
+#include "display.h"
 
 #define DRM_DEVICE "/dev/dri/card0"
 
+void displaySummary(WINDOW *win);
 const char *get_connector_type_name(uint32_t connector_type);
 
-void PrintSummary(WINDOW *win)
+void displaySummary(WINDOW *win)
 {
     box(win, 0, 0);
     mvwprintw(win, 1, 1, "DRM SUMMARY");
@@ -73,10 +70,7 @@ void PrintSummary(WINDOW *win)
             mvwprintw(win, line++, 2, "Failed to get connector %d", resources->connectors[i]);
         }
     }
-
-    // mvwprintw(win, 3, 1, "Display Configuration:");
-    // mvwprintw(win, 4, 1, "Active CRTCs: crtc-0, crtc-1");
-    // mvwprintw(win, 5, 1, "Connected Outputs: DP-1: Connected, HDMI-A-1: Disconnected");
+    mvwprintw(win, line++, 1, "-----------------------------------------");
     mvwprintw(win, line++, 1, "Encoders: Encoder-0: crtc-0, Encoder-1: DP-1");
     mvwprintw(win, line++, 1, "GPU Information:");
     mvwprintw(win, line++, 1, "GPU Model: Intel Iris Xe Graphics");
@@ -144,3 +138,6 @@ const char *get_connector_type_name(uint32_t connector_type)
         return "Unknown";
     }
 }
+
+
+
