@@ -2,7 +2,6 @@
 #define NODE_H
 
 #include <ncurses.h>
-#include <stdarg.h>
 
 typedef struct Node {
     char name[50];

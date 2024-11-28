@@ -162,7 +162,7 @@ void displayEncoder(WINDOW *win, const char *page_name)
 {
     wclear(win);
     // make window full screen
-    
+
     box(win, 0, 0);
     mvwprintw(win, 1, 1, "%s - information", page_name);
     wrefresh(win);
@@ -221,6 +221,80 @@ void displayEncoder(WINDOW *win, const char *page_name)
     mvwprintw(win, ++line, 1, "Press 'e' to go back.");
 
     drmModeFreeEncoder(encoder);
+    drmModeFreeResources(resources);
+    close(drm_fd);
+    wrefresh(win);
+
+    int ch;
+    while ((ch = wgetch(win)) != 'e')
+    {
+    }
+}
+
+void displayFramebuffer(WINDOW *win, const char *page_name)
+{
+    wclear(win);
+    box(win, 0, 0);
+    mvwprintw(win, 1, 1, "%s - information", page_name);
+    wrefresh(win);
+
+    int line = 3;
+
+    const int drm_fd = open(DRM_DEVICE, O_RDWR);
+    if (drm_fd < 0)
+    {
+        mvwprintw(win, line++, 1, "Failed to open DRM Device!\n");
+        wrefresh(win);
+        wgetch(win);
+        return;
+    }
+
+    drmModeRes *resources = drmModeGetResources(drm_fd);
+    if (!resources)
+    {
+        mvwprintw(win, line++, 1, "Failed to get DRM resources\n");
+        close(drm_fd);
+        wrefresh(win);
+        wgetch(win);
+        return;
+    }
+
+    int framebuffer_id = -1;
+    char *endptr;
+
+    framebuffer_id = strtol(page_name + 11, &endptr, 10) - 1;
+    if (*endptr != '\0' || framebuffer_id < 0 || framebuffer_id >= resources->count_fbs)
+    {
+        mvwprintw(win, line++, 1, "Invalid Framebuffer name: %s\n", page_name);
+        drmModeFreeResources(resources);
+        close(drm_fd);
+        wrefresh(win);
+        wgetch(win);
+        return;
+    }
+
+    drmModeFB *fb = drmModeGetFB(drm_fd, resources->fbs[framebuffer_id]);
+    if (!fb)
+    {
+        mvwprintw(win, line++, 1, "Failed to get Framebuffer %d\n", framebuffer_id);
+        drmModeFreeResources(resources);
+        close(drm_fd);
+        wrefresh(win);
+        wgetch(win);
+        return;
+    }
+
+    mvwprintw(win, line++, 1, "Framebuffer ID: %d", fb->fb_id);
+    mvwprintw(win, line++, 1, "Width: %d", fb->width);
+    mvwprintw(win, line++, 1, "Height: %d", fb->height);
+    mvwprintw(win, line++, 1, "Pitch: %d", fb->pitch);
+    mvwprintw(win, line++, 1, "BPP: %d", fb->bpp);
+    mvwprintw(win, line++, 1, "Depth: %d", fb->depth);
+    mvwprintw(win, line++, 1, "Handle: %d", fb->handle);
+
+    mvwprintw(win, ++line, 1, "Press 'e' to go back.");
+
+    drmModeFreeFB(fb);
     drmModeFreeResources(resources);
     close(drm_fd);
     wrefresh(win);

@@ -12,6 +12,7 @@ void displayMenu(WINDOW *win, Node *nodes, int count)
     {
         wclear(win);
         box(win, 0, 0);
+
         for (int i = 0; i < count; ++i)
         {
             if (highlight == i)
@@ -21,7 +22,7 @@ void displayMenu(WINDOW *win, Node *nodes, int count)
             mvwprintw(win, i + 1, 1, nodes[i].name);
             wattroff(win, A_REVERSE);
         }
-        mvwprintw(win, count + 2, 1, "Use Arrow Keys to Navigate, Enter to Select, 'e' to Exit");
+        mvwprintw(win, count + 2, 1, "%d Use Arrow Keys to Navigate, Enter to Select, 'e' to Exit", count);
         wrefresh(win);
 
         ch = wgetch(win);
@@ -38,7 +39,14 @@ void displayMenu(WINDOW *win, Node *nodes, int count)
         case '\n':
             if (strcmp(nodes[highlight].type, "menu") == 0)
             {
-                displayMenu(win, nodes[highlight].submenu, nodes[highlight].submenuSize);
+                if (nodes[highlight].submenuSize == 0)
+                {
+                    displayPage(win, nodes[highlight].name);
+                }
+                else
+                {
+                    displayMenu(win, nodes[highlight].submenu, nodes[highlight].submenuSize);
+                }
             }
             else if (strcmp(nodes[highlight].type, "page") == 0)
             {
@@ -74,4 +82,3 @@ void displayMainMenu(WINDOW *win)
 {
     displayMenu(win, mainMenu, mainMenuSize);
 }
-

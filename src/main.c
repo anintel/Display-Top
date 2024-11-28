@@ -4,18 +4,17 @@
 
 #include "data.h"
 
-
 int main()
 {
-    
+
     initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
 
-    int height , width ;
-    getmaxyx(stdscr, height,width);
-    
+    int height, width;
+    getmaxyx(stdscr, height, width);
+
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
     init_pair(3, COLOR_RED, COLOR_BLACK);
@@ -33,12 +32,11 @@ int main()
     mvwprintw(menu, 1, 1, "MAIN MENU");
     wrefresh(menu);
 
-    // initializeCrtcPages();
-    
+    populateData();
+
     displaySummary(summary);
     displayMainMenu(menu);
 
-    
     delwin(menu);
     delwin(summary);
     endwin();

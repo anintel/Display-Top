@@ -1,40 +1,12 @@
 #include "data.h"
 #include "display.h"
 
-Node crtcPages[] = {
-    {"CRTC1", "page", displayCrtc, NULL, 0},
-    {"CRTC2", "page", displayCrtc, NULL, 0},
-    {"CRTC3", "page", displayCrtc, NULL, 0},
-    {"CRTC4", "page", displayCrtc, NULL, 0}};
+Node *crtcPages;
+Node *connectorPages;
+Node *encoderPages;
+Node *framebufferPages;
 
-// Node *crtcPages;
-
-Node connectorPages[] = {
-    {"Connector1", "page", displayConnector, NULL, 0},
-    {"Connector2", "page", displayConnector, NULL, 0},
-    {"Connector3", "page", displayConnector, NULL, 0},
-    {"Connector4", "page", displayConnector, NULL, 0}};
-
-Node encoderPages[] = {
-    {"Encoder1", "page", displayEncoder, NULL, 0},
-    {"Encoder2", "page", displayEncoder, NULL, 0},
-    {"Encoder3", "page", displayEncoder, NULL, 0},
-    {"Encoder4", "page", displayEncoder, NULL, 0}};
-
-Node framebufferPages[] = {
-    {"Framebuffer1", "page", NULL, NULL, 0},
-    {"Framebuffer2", "page", NULL, NULL, 0},
-    {"Framebuffer3", "page", NULL, NULL, 0},
-    {"Framebuffer4", "page", NULL, NULL, 0}};
-
-Node displayConfigMenu[] = {
-    {"CRTCs", "menu", NULL, crtcPages, sizeof(crtcPages) / sizeof(Node)},
-    {"Connectors", "menu", NULL, connectorPages, sizeof(connectorPages) / sizeof(Node)},
-    {"Encoders", "menu", NULL, encoderPages, sizeof(encoderPages) / sizeof(Node)},
-    {"Framebuffers", "menu", NULL, framebufferPages, sizeof(framebufferPages) / sizeof(Node)},
-    {"Other Display Info", "page", NULL, NULL, 0}};
-
-// Node *displayConfigMenu;
+Node *displayConfigMenu;
 
 Node gpuInfoPages[] = {
     {"GPU General Information", "page", NULL, NULL, 0},
@@ -72,17 +44,15 @@ Node systemStatePages[] = {
     {"Hotplug Detect Control", "page", NULL, NULL, 0},
     {"SAGV and IPC Status", "page", NULL, NULL, 0}};
 
-Node mainMenu[] = {
-    {"Display Configuration", "menu", NULL, displayConfigMenu, sizeof(displayConfigMenu) / sizeof(Node)},
-    {"GPU Information", "menu", NULL, gpuInfoPages, sizeof(gpuInfoPages) / sizeof(Node)},
-    {"Power Management", "menu", NULL, powerManagementPages, sizeof(powerManagementPages) / sizeof(Node)},
-    {"Display Capabilities", "menu", NULL, displayCapabilitiesPages, sizeof(displayCapabilitiesPages) / sizeof(Node)},
-    {"Performance Tuning", "menu", NULL, performanceTuningPages, sizeof(performanceTuningPages) / sizeof(Node)},
-    {"Debugging and Error Information", "menu", NULL, debuggingErrorInfoPages, sizeof(debuggingErrorInfoPages) / sizeof(Node)},
-    {"Driver and Module Information", "menu", NULL, driverModuleInfoPages, sizeof(driverModuleInfoPages) / sizeof(Node)},
-    {"Internal and Client Info", "menu", NULL, internalClientInfoPages, sizeof(internalClientInfoPages) / sizeof(Node)},
-    {"System State", "menu", NULL, systemStatePages, sizeof(systemStatePages) / sizeof(Node)}};
+size_t gpuInfoPagesSize = sizeof(gpuInfoPages) / sizeof(Node);
+size_t powerManagementPagesSize = sizeof(powerManagementPages) / sizeof(Node);
+size_t displayCapabilitiesPagesSize = sizeof(displayCapabilitiesPages) / sizeof(Node);
+size_t performanceTuningPagesSize = sizeof(performanceTuningPages) / sizeof(Node);
+size_t debuggingErrorInfoPagesSize = sizeof(debuggingErrorInfoPages) / sizeof(Node);
+size_t driverModuleInfoPagesSize = sizeof(driverModuleInfoPages) / sizeof(Node);
+size_t internalClientInfoPagesSize = sizeof(internalClientInfoPages) / sizeof(Node);
+size_t systemStatePagesSize = sizeof(systemStatePages) / sizeof(Node);
 
-// Node *mainMenu;
+Node *mainMenu;
 
-size_t mainMenuSize = sizeof(mainMenu) / sizeof(Node);
+size_t mainMenuSize = 0;
