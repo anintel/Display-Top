@@ -5,6 +5,7 @@ Node *crtcPages;
 Node *connectorPages;
 Node *encoderPages;
 Node *framebufferPages;
+Node *planePages;
 
 Node *displayConfigMenu;
 

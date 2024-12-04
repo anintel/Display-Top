@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
+#include <drm/drm.h>
 
 #define DRM_DEVICE "/dev/dri/card0"
 
@@ -65,7 +66,8 @@ int initializeCrtcPages()
     return crtcCount;
 }
 
-int initializeConnectorPages(){
+int initializeConnectorPages()
+{
     int fd = open(DRM_DEVICE, O_RDWR);
     if (fd < 0)
     {
@@ -199,6 +201,54 @@ int initializeFrameBuffers()
     return framebufferCount;
 }
 
+int initializePlanes()
+{
+
+    int fd = open(DRM_DEVICE, O_RDWR);
+    if (fd < 0)
+    {
+        perror("drmOpen");
+        return 0;
+    }
+
+    drmSetClientCap(fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+
+    drmModePlaneRes *resources = drmModeGetPlaneResources(fd);
+    if (!resources)
+    {
+        perror("drmModeGetResources");
+        close(fd);
+        return 0;
+    }
+
+    int planeCount = -1;
+    planeCount = resources->count_planes;
+    planePages = (Node *)malloc(planeCount * sizeof(Node));
+    if (!planePages)
+    {
+        perror("malloc");
+        drmModeFreePlaneResources(resources);
+        close(fd);
+        return 0;
+    }
+
+    for (int i = 0; i < planeCount; ++i)
+    {
+        char planeName[10];
+        snprintf(planeName, sizeof(planeName), "Plane%d", i + 1);
+        setString(planePages[i].name, planeName, sizeof(planePages[i].name));
+        setString(planePages[i].type, "page", sizeof(planePages[i].type));
+        planePages[i].displayFunction = displayPlane;
+        planePages[i].submenu = NULL;
+        planePages[i].submenuSize = 0;
+    }
+
+    drmModeFreePlaneResources(resources);
+    close(fd);
+
+    return planeCount;
+}
+
 int initializeDisplayConfigMenu()
 {
     int count = 0;
@@ -208,6 +258,13 @@ int initializeDisplayConfigMenu()
     // todo: don't check for zero check for -1. update the init functions aswell.
     if (crtcsSize == 0)
         return NULL;
+    else
+        count++;
+
+    int planesSize = initializePlanes();
+    if (planesSize == 0)
+        // return NULL;
+        count++;
     else
         count++;
 
@@ -221,15 +278,17 @@ int initializeDisplayConfigMenu()
     if (encodersSize == 0)
         return NULL;
     else
-    count++;
+        count++;
 
     int framebuffersSize = initializeFrameBuffers();
-    // if (framebuffersSize == 0)
-    //     return NULL;
-    // else
+    if (framebuffersSize == 0)
+        // return NULL;
         count++;
+    else
         count++;
 
+    count++;
+    count++;
 
     displayConfigMenu = (Node *)malloc(count * sizeof(Node));
     if (!displayConfigMenu)
@@ -244,6 +303,13 @@ int initializeDisplayConfigMenu()
     displayConfigMenu[index].displayFunction = NULL;
     displayConfigMenu[index].submenu = crtcPages;
     displayConfigMenu[index].submenuSize = crtcsSize;
+    index++;
+
+    setString(displayConfigMenu[index].name, "Planes", sizeof(displayConfigMenu[index].name));
+    setString(displayConfigMenu[index].type, "menu", sizeof(displayConfigMenu[index].type));
+    displayConfigMenu[index].displayFunction = NULL;
+    displayConfigMenu[index].submenu = planePages;
+    displayConfigMenu[index].submenuSize = planesSize;
     index++;
 
     setString(displayConfigMenu[index].name, "Connectors", sizeof(displayConfigMenu[index].name));

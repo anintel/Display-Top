@@ -12,11 +12,21 @@
 
 void displaySummary(WINDOW *win);
 const char *get_connector_type_name(uint32_t connector_type);
+const char *get_encoder_type_name(uint32_t encoder_type);
 
 void displaySummary(WINDOW *win)
 {
+    WINDOW *summary = newwin(getmaxy(stdscr) / 2, getmaxx(stdscr), 0, 0);
+    keypad(summary, TRUE);
+    scrollok(summary, TRUE);
+    wrefresh(summary);
+
+    wclear(win);
     box(win, 0, 0);
+    wattron(win, A_BOLD);
     mvwprintw(win, 1, 1, "DRM SUMMARY");
+    wattroff(win, A_BOLD);
+
 
     int line = 3;
 
@@ -38,14 +48,16 @@ void displaySummary(WINDOW *win)
         goto error;
     }
 
-    mvwprintw(win, line++, 1, "Active CRTCs:");
+    mvwprintw(win, line++, 1, "CRTCs Status:");
     for (i = 0; i < resources->count_crtcs; i++)
     {
         crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
         if (crtc)
         {
+            wattron(win, A_DIM);
             mvwprintw(win, line++, 2, "CRTC %d is %s\n", resources->crtcs[i],
                       (crtc->mode_valid) ? "Active" : "Inactive");
+            wattroff(win, A_DIM);
             drmModeFreeCrtc(crtc);
         }
         else
@@ -54,7 +66,7 @@ void displaySummary(WINDOW *win)
         }
     }
 
-    mvwprintw(win, line++, 1, "Connectors - %d", resources->count_connectors);
+    mvwprintw(win, line++, 1, "Connectors - %d Status", resources->count_connectors);
     for (int i = 0; i < resources->count_connectors; i++)
     {
         drmModeConnector *connector = drmModeGetConnector(drm_fd, resources->connectors[i]);
@@ -70,11 +82,75 @@ void displaySummary(WINDOW *win)
             mvwprintw(win, line++, 2, "Failed to get connector %d", resources->connectors[i]);
         }
     }
+
+    wattron(win, A_BOLD);
+    mvwprintw(win, line++, 1, "Encoders and their corresponding CRTCs:");
+    wattroff(win, A_BOLD);
+
+    int col_width = 6;                                                   
+    mvwprintw(win, line++, 2, "Encoders|");
+    for (int i = 0; i < resources->count_encoders; i++)
+    {
+        drmModeEncoder *encoder = drmModeGetEncoder(drm_fd, resources->encoders[i]);
+        if (encoder)
+        {
+            mvwprintw(win, line - 1, 11 + (i * (col_width + 1)), "%*d|", col_width, encoder->encoder_id);
+            drmModeFreeEncoder(encoder);
+        }
+        else
+        {
+            mvwprintw(win, line - 1, 11 + (i * (col_width + 1)), "%*s|", col_width, "N/A");
+        }
+    }
+
+    // print encoder type
+    mvwprintw(win, line++, 2, "Type    |");
+    for (int i = 0; i < resources->count_encoders; i++)
+    {
+        drmModeEncoder *encoder = drmModeGetEncoder(drm_fd, resources->encoders[i]);
+        if (encoder)
+        {
+            mvwprintw(win, line - 1, 11 + (i * (col_width + 1)), "%*s|", col_width, get_encoder_type_name(encoder->encoder_type));
+            drmModeFreeEncoder(encoder);
+        }
+        else
+        {
+            mvwprintw(win, line - 1, 11 + (i * (col_width + 1)), "%*s|", col_width, "N/A");
+        }
+    }
+
+    mvwprintw(win, line++, 2, "CRTCs   |");
+    for (int i = 0; i < resources->count_encoders; i++)
+    {
+        drmModeEncoder *encoder = drmModeGetEncoder(drm_fd, resources->encoders[i]);
+        if (encoder)
+        {
+            mvwprintw(win, line - 1, 11 + (i * (col_width + 1)), "%*d|", col_width, encoder->crtc_id);
+            drmModeFreeEncoder(encoder);
+        }
+        else
+        {
+            mvwprintw(win, line - 1, 11 + (i * (col_width + 1)), "%*s|", col_width, "N/A");
+        }
+    }
+
+
+
+    drmVersionPtr version = drmGetVersion(drm_fd);
+    if (version)
+    {
+        mvwprintw(win, line++, 1, "DRM Driver: %s", version->name);
+        drmFreeVersion(version);
+    }
+    else
+    {
+        mvwprintw(win, line++, 2, "Failed to get DRM version");
+    }
+
+
+    
+
     mvwprintw(win, line++, 1, "-----------------------------------------");
-    mvwprintw(win, line++, 1, "Encoders: Encoder-0: crtc-0, Encoder-1: DP-1");
-    mvwprintw(win, line++, 1, "GPU Information:");
-    mvwprintw(win, line++, 1, "GPU Model: Intel Iris Xe Graphics");
-    mvwprintw(win, line++, 1, "Frequency: Base: 300 MHz, Boost: 900 MHz");
     mvwprintw(win, line++, 1, "Power Management:");
     mvwprintw(win, line++, 1, "Runtime PM: Active");
     mvwprintw(win, line++, 1, "PSR: Enabled");
@@ -139,5 +215,27 @@ const char *get_connector_type_name(uint32_t connector_type)
     }
 }
 
-
-
+const char *get_encoder_type_name(uint32_t encoder_type)
+{
+    switch (encoder_type)
+    {
+    case DRM_MODE_ENCODER_NONE:
+        return "None";
+    case DRM_MODE_ENCODER_DAC:
+        return "DAC";
+    case DRM_MODE_ENCODER_TMDS:
+        return "TMDS";
+    case DRM_MODE_ENCODER_LVDS:
+        return "LVDS";
+    case DRM_MODE_ENCODER_TVDAC:
+        return "TVDAC";
+    case DRM_MODE_ENCODER_VIRTUAL:
+        return "Virtual";
+    case DRM_MODE_ENCODER_DSI:
+        return "DSI";
+    case DRM_MODE_ENCODER_DPMST:
+        return "DPMST";
+    default:
+        return "Unknown";
+    }
+}

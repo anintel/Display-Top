@@ -7,6 +7,7 @@ extern Node *crtcPages;
 extern Node *connectorPages;
 extern Node *encoderPages;
 extern Node *framebufferPages;
+extern Node *planePages;
 
 extern Node *displayConfigMenu; 
 
