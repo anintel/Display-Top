@@ -236,11 +236,16 @@ void displayMenu2(WINDOW *win, Node *nodes, int count)
     free(items);
 }
 
+
+displayMenu3(WINDOW *win, Node *node){
+    
+}
+
 void displayPage(WINDOW *win, const char *pageName)
 {
     wclear(win);
     box(win, 0, 0);
-    mvwprintw(win, 1, 1, "Page: %s", pageName);
+    mvwprintw(win, 1, 1, "Empty Page: %s", pageName);
     mvwprintw(win, 3, 1, "Press 'e' to go back.");
     wrefresh(win);
 
@@ -277,6 +282,8 @@ void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(W
 
     wclear(win);
     box(win, 0, 0);
+    // switch to color pair 2
+    wbkgd(win, COLOR_PAIR(2));
     print_bold_text(win, 1, 1, pageName);
     mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
 
@@ -285,7 +292,10 @@ void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(W
 
     int line = 0; // Use a normal integer, no need for pointer
     displayFunction(pad, pageName, &line);
-    pad_height = line;
+    if (line < pad_height)
+    {
+        pad_height = line;
+    }
 
     prefresh(pad, 0, 0, pad_y, pad_x, pad_win_height, pad_win_width);
 
@@ -306,16 +316,16 @@ void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(W
         pad_win_width = getmaxx(win) - 2;
 
         if (pad_pos > 0)
-            mvwprintw(win, 3, 1, "...");
+            print_bold_text(win, 3, 1, "...");
         else
             mvwprintw(win, 3, 1, "   ");
 
         if (pad_pos < pad_height - (pad_win_height))
-            mvwprintw(win, getmaxy(win) - 2, 1, "...");
+            print_bold_text(win, getmaxy(win) - 2, 1, "...");
         else
             mvwprintw(win, getmaxy(win) - 2, 1, "   ");
 
-        switch(ch)
+        switch (ch)
         {
         case KEY_UP:
             if (pad_pos > 0)
@@ -332,6 +342,7 @@ void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(W
     } while ((ch = wgetch(win)) != 'e');
 
     delwin(pad);
+    wbkgd(win, COLOR_PAIR(1));
 }
 
 void displayMainMenu(WINDOW *win)

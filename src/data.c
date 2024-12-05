@@ -9,6 +9,8 @@ Node *planePages;
 
 Node *displayConfigMenu;
 
+Node *gpuInfoMenu;
+
 Node gpuInfoPages[] = {
     {"GPU General Information", "page", NULL, NULL, 0},
     {"Engine Information", "page", NULL, NULL, 0},

@@ -1,23 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
-#include <ncurses.h>
-#include <drm/drm_mode.h>
-#include <drm/drm_fourcc.h>
-
 #include "display.h"
 #include "utils.h"
-
-#define DRM_DEVICE "/dev/dri/card0"
+#include "utils_drm.h"
 
 void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
 {
     int line = 0;
+    const int drm_fd = open_primary_drm_device();
 
-    const int drm_fd = open(DRM_DEVICE, O_RDWR);
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
@@ -128,6 +117,8 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
         }
     }
 
+
+
     drmModeFreeObjectProperties(props);
 
     mvwprintw(pad, ++line, 1, "Press 'e' to go back.");
@@ -143,11 +134,33 @@ err:
     return;
 }
 
+const char *drmModeGetObjectTypeName(uint32_t object_type)
+{
+    switch (object_type)
+    {
+    case DRM_MODE_OBJECT_CRTC:
+        return "CRTC";
+    case DRM_MODE_OBJECT_CONNECTOR:
+        return "Connector";
+    case DRM_MODE_OBJECT_ENCODER:
+        return "Encoder";
+    case DRM_MODE_OBJECT_PLANE:
+        return "Plane";
+    case DRM_MODE_OBJECT_PROPERTY:
+        return "Property";
+    case DRM_MODE_OBJECT_FB:
+        return "Framebuffer";
+    default:
+        return "Unknown";
+    }
+}
+
 void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
 {
     int line = 0;
 
-    const int drm_fd = open(DRM_DEVICE, O_RDWR);
+    const int drm_fd = open_primary_drm_device();
+
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
@@ -187,7 +200,12 @@ void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
 
     mvwprintw(pad, line++, 1, "Connector ID: %d", connector->connector_id);
     mvwprintw(pad, line++, 1, "No. of Encoders: %d", connector->count_encoders);
-    mvwprintw(pad, line++, 1, "Encoder ID: %d", connector->encoders[connector->encoder_id]);
+    mvwprintw(pad, line++, 1, "Encoder ID: %d", connector->encoder_id);
+    mvwprintw(pad, line++, 1, "Possible Encoders: ");
+    for (int i = 0; i < connector->count_encoders; i++)
+    {
+        mvwprintw(pad, line++, 3, "Encoder %d: %d", i, connector->encoders[i]);
+    }
     mvwprintw(pad, line++, 1, "Connection: ");
 
     if (connector->connection == DRM_MODE_CONNECTED)
@@ -205,15 +223,53 @@ void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
     mvwprintw(pad, line++, 1, "Modes: %d", connector->count_modes);
     wattron(pad, A_DIM);
     for (int i = 0; i < connector->count_modes; i++)
-    {
-        if (i % 2 == 0)
-            mvwprintw(pad, line++, 2, "Mode %d: %dx%d@%dHz", i, connector->modes[i].hdisplay, connector->modes[i].vdisplay, connector->modes[i].vrefresh);
-        else
-            mvwprintw(pad, line - 1, 30, "Mode %d: %dx%d@%dHz", i, connector->modes[i].hdisplay, connector->modes[i].vdisplay, connector->modes[i].vrefresh);
-    }
+
+        if (connector->modes && i < connector->count_modes)
+        {
+            const drmModeModeInfo *mode = &connector->modes[i];
+
+            double refresh_rate = 0.0;
+            if (mode->vrefresh > 0)
+            {
+                refresh_rate = mode->vrefresh;
+            }
+            else if (mode->clock > 0 && mode->vtotal > 0)
+            {
+                refresh_rate = (double)(mode->clock * 1000) / (mode->htotal * mode->vtotal);
+            }
+
+            const char *preferred = (mode->type & DRM_MODE_TYPE_PREFERRED) ? " preferred" : "";
+            const char *driver = (mode->type & DRM_MODE_TYPE_DRIVER) ? " driver" : "";
+
+            const char *phsync = (mode->flags & DRM_MODE_FLAG_PHSYNC) ? " phsync" : " nhsync";
+            const char *pvsync = (mode->flags & DRM_MODE_FLAG_PVSYNC) ? " pvsync" : " nvsync";
+
+            const char *interlace = (mode->flags & DRM_MODE_FLAG_INTERLACE) ? " interlace" : "";
+
+            const char *aspect_ratio = "";
+            double ratio = (double)mode->hdisplay / mode->vdisplay;
+            if (fabs(ratio - 16.0 / 9.0) < 0.01)
+            {
+                aspect_ratio = " 16:9";
+            }
+            else if (fabs(ratio - 4.0 / 3.0) < 0.01)
+            {
+                aspect_ratio = " 4:3";
+            }
+            else
+            {
+                aspect_ratio = "";
+            }
+
+            mvwprintw(pad, line++, 2,
+                      "%ux%u @%.2f%s%s%s%s%s%s",
+                      mode->hdisplay, mode->vdisplay, refresh_rate,
+                      driver, preferred, phsync, pvsync, interlace, aspect_ratio);
+        }
+
     wattroff(pad, A_DIM);
 
-    mvwprintw(pad, line++, 1, "Count Props: %d", connector->count_props);
+    mvwprintw(pad, line++, 1, "No. of Properties: %d", connector->count_props);
 
     wattron(pad, A_DIM);
     for (int i = 0; i < connector->count_props; i++)
@@ -222,12 +278,69 @@ void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
         if (prop)
         {
             uint64_t value = connector->prop_values[i];
-            mvwprintw(pad, line++, 2, "%d. %s: %lu", i, prop->name, value);
+
+            // Determine property type and format value accordingly
+            char value_str[256] = {0};
+
+            if (prop->flags & DRM_MODE_PROP_BLOB)
+            {
+                snprintf(value_str, sizeof(value_str), "blob = %lu", value);
+            }
+            else if (prop->flags & DRM_MODE_PROP_ENUM)
+            {
+
+                snprintf(value_str, sizeof(value_str), "enum (");
+                for (int j = 0; j < prop->count_enums; j++)
+                {
+                    if (j > 0)
+                    {
+                        snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), ", ");
+                    }
+                    snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), "%s", prop->enums[j].name);
+                }
+                snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), ") = %s", prop->enums[value].name);
+            }
+            else if (prop->flags & DRM_MODE_PROP_RANGE)
+            {
+                snprintf(value_str, sizeof(value_str), "range [%llu, %llu] = %lu",
+                         prop->values[0], prop->values[1], value);
+            }
+            else if (prop->flags & DRM_MODE_PROP_OBJECT)
+            {
+                snprintf(value_str, sizeof(value_str), "object %s = %lu",
+                         drmModeGetObjectTypeName(prop->values[0]), value);
+            }
+            else
+            {
+                snprintf(value_str, sizeof(value_str), "%lu", value);
+            }
+
+            // Determine if the property is immutable or atomic
+            const char *immutability = (prop->flags & DRM_MODE_PROP_IMMUTABLE) ? " immutable" : "";
+            const char *atomicity = (prop->flags & DRM_MODE_PROP_ATOMIC) ? " atomic" : " ";
+
+            // Print the property with all details
+            wattroff(pad, A_DIM);
+            mvwprintw(pad, line++, 2, "%d. %s", i, prop->name);
+            wattron(pad, A_DIM);
+            wprintw(pad, "%s%s: ", immutability, atomicity);
+
+            // Handle line overflow
+            int remaining_width = getmaxx(pad) - getcurx(pad) - 1;
+            if (strlen(value_str) > remaining_width)
+            {
+                char truncated_value[remaining_width + 1];
+                strncpy(truncated_value, value_str, remaining_width);
+                truncated_value[remaining_width] = '\0';
+                wprintw(pad, "%s", truncated_value);
+                mvwprintw(pad, line++, 2, "%s", value_str + remaining_width);
+            }
+            else
+            {
+                wprintw(pad, "%s", value_str);
+            }
+
             drmModeFreeProperty(prop);
-        }
-        else
-        {
-            mvwprintw(pad, line++, 2, "Failed to get property for ID %d", connector->props[i]);
         }
     }
     wattroff(pad, A_DIM);
@@ -249,7 +362,8 @@ void displayEncoder(WINDOW *pad, const char *page_name, int *content_line)
 {
     int line = 0;
 
-    const int drm_fd = open(DRM_DEVICE, O_RDWR);
+    const int drm_fd = open_primary_drm_device();
+
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
@@ -316,7 +430,8 @@ void displayFramebuffer(WINDOW *pad, const char *page_name, int *content_line)
 {
     int line = 0;
 
-    const int drm_fd = open(DRM_DEVICE, O_RDWR);
+    const int drm_fd = open_primary_drm_device();
+
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
@@ -378,7 +493,8 @@ void displayPlane(WINDOW *pad, const char *page_name, int *content_line)
 {
     int line = 0;
 
-    const int drm_fd = open(DRM_DEVICE, O_RDWR);
+    const int drm_fd = open_primary_drm_device();
+
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
@@ -435,16 +551,13 @@ void displayPlane(WINDOW *pad, const char *page_name, int *content_line)
     line++;
 
     mvwprintw(pad, line++, 1, "Number of formats: %u", plane->count_formats);
+    line++;
     if (plane->count_formats > 0)
     {
-        mvwprintw(pad, line++, 1, "Formats: ");
         wattron(pad, A_DIM);
         for (uint32_t i = 0; i < plane->count_formats; i++)
         {
-            if (i % 2 == 0)
-                mvwprintw(pad, line++, 3, "0x%08X", plane->formats[i]);
-            else
-                mvwprintw(pad, line - 1, 30, "0x%08X", plane->formats[i]);
+            mvwprintw(pad, line++, 3, "%s (0x%08x)", get_plane_format_name(plane->formats[i]), plane->formats[i]);
         }
         line++;
         wattroff(pad, A_DIM);
@@ -460,47 +573,77 @@ void displayPlane(WINDOW *pad, const char *page_name, int *content_line)
         goto err;
     }
 
-    line++;
     mvwprintw(pad, line++, 1, "Properties for Plane %u:", plane->plane_id);
     line++;
 
     for (uint32_t i = 0; i < props->count_props; i++)
     {
-        drmModePropertyRes *prop = drmModeGetProperty(drm_fd, props->props[i]);
+        drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
         if (prop)
         {
-            mvwprintw(pad, line++, 1, "Property %u: %s", prop->prop_id, prop->name);
-            wattron(pad, A_DIM);
-            if (prop->flags & DRM_MODE_PROP_IMMUTABLE)
-                wprintw(pad, " (Immutable) ");
+            uint64_t value = props->prop_values[i];
 
-            mvwprintw(pad, line++, 3, "blob Counts: %llu, Enum Counts: %d, Values Count: %llu", prop->count_blobs, prop->count_enums, prop->count_values);
-            if (prop->flags & DRM_MODE_PROP_RANGE)
+            // Determine property type and format value accordingly
+            char value_str[256] = {0};
+
+            if (prop->flags & DRM_MODE_PROP_BLOB)
             {
-                mvwprintw(pad, line++, 3, "Range: [%llu - %llu]", prop->values[0], prop->values[1]);
+                snprintf(value_str, sizeof(value_str), "blob = %lu", value);
             }
             else if (prop->flags & DRM_MODE_PROP_ENUM)
             {
+                snprintf(value_str, sizeof(value_str), "enum (");
                 for (int j = 0; j < prop->count_enums; j++)
                 {
-                    mvwprintw(pad, line++, 3, "Enum %d: %s = %llu", j, prop->enums[j].name, prop->enums[j].value);
+                    if (j > 0)
+                    {
+                        snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), ", ");
+                    }
+                    snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), "%s", prop->enums[j].name);
                 }
+                snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), ") = %s", prop->enums[value].name);
             }
-            else if (prop->flags & DRM_MODE_PROP_BLOB)
+            else if (prop->flags & DRM_MODE_PROP_RANGE)
             {
-                mvwprintw(pad, line++, 3, "Blob: %llu", props->prop_values[i]);
+                snprintf(value_str, sizeof(value_str), "range [%llu, %llu] = %lu",
+                         prop->values[0], prop->values[1], value);
             }
-            else if (prop->flags & DRM_MODE_PROP_BITMASK)
+            else if (prop->flags & DRM_MODE_PROP_OBJECT)
             {
-                mvwprintw(pad, line++, 3, "Bitmask: %llu", props->prop_values[i]);
+                snprintf(value_str, sizeof(value_str), "object %s = %lu",
+                         drmModeGetObjectTypeName(prop->values[0]), value);
+            }
+            else
+            {
+                snprintf(value_str, sizeof(value_str), "%lu", value);
             }
 
+            // Determine if the property is immutable or atomic
+            const char *immutability = (prop->flags & DRM_MODE_PROP_IMMUTABLE) ? " immutable" : "";
+            const char *atomicity = (prop->flags & DRM_MODE_PROP_ATOMIC) ? " atomic" : " ";
+
+            // Print the property with all details
             wattroff(pad, A_DIM);
+            mvwprintw(pad, line++, 2, "%d. %s", i, prop->name);
+            wattron(pad, A_DIM);
+            wprintw(pad, "%s%s: ", immutability, atomicity);
+
+            // Handle line overflow
+            int remaining_width = getmaxx(pad) - getcurx(pad) - 1;
+            if (strlen(value_str) > remaining_width)
+            {
+                char truncated_value[remaining_width + 1];
+                strncpy(truncated_value, value_str, remaining_width);
+                truncated_value[remaining_width] = '\0';
+                wprintw(pad, "%s", truncated_value);
+                mvwprintw(pad, line++, 2, "%s", value_str + remaining_width);
+            }
+            else
+            {
+                wprintw(pad, "%s", value_str);
+            }
+
             drmModeFreeProperty(prop);
-        }
-        else
-        {
-            mvwprintw(pad, line++, 1, "  Property %u: (failed to get property details)", props->props[i]);
         }
     }
 

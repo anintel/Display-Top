@@ -335,13 +335,115 @@ int initializeDisplayConfigMenu()
 
     setString(displayConfigMenu[index].name, "Other Display Info", sizeof(displayConfigMenu[index].name));
     setString(displayConfigMenu[index].type, "page", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
+    displayConfigMenu[index].displayFunction = displayDebugfsFile;
     displayConfigMenu[index].submenu = NULL;
     displayConfigMenu[index].submenuSize = 0;
     index++;
 
     return count;
 }
+
+// int initializeGpuGeneralInfo()
+// {
+//     gpuGeneralInfoPages = (Node *)malloc(1 * sizeof(Node));
+//     if (!gpuGeneralInfoPages)
+//     {
+//         perror("malloc");
+//         return 0;
+//     }
+
+//     setString(gpuGeneralInfoPages[0].name, "i915_gpu_info", sizeof(gpuGeneralInfoPages[0].name));
+//     setString(gpuGeneralInfoPages[0].type, "page", sizeof(gpuGeneralInfoPages[0].type));
+//     gpuGeneralInfoPages[0].displayFunction = displayDebugfsFile;
+//     gpuGeneralInfoPages[0].submenu = NULL;
+//     gpuGeneralInfoPages[0].submenuSize = 0;
+
+//     return 1;
+// }
+
+// int initializeEngineInfo()
+// {
+//     engineInfoPages = (Node *)malloc(1 * sizeof(Node));
+//     if (!engineInfoPages)
+//     {
+//         perror("malloc");
+//         return 0;
+//     }
+
+//     setString(engineInfoPages[0].name, "i915_engine_info", sizeof(engineInfoPages[0].name));
+//     setString(engineInfoPages[0].type, "page", sizeof(engineInfoPages[0].type));
+//     engineInfoPages[0].displayFunction = displayDebugfsFile;
+//     engineInfoPages[0].submenu = NULL;
+//     engineInfoPages[0].submenuSize = 0;
+
+//     return 1;
+// }
+
+// int initializeGemObjects()
+// {
+//     gemObjectsPages = (Node *)malloc(3 * sizeof(Node));
+//     if (!gemObjectsPages)
+//     {
+//         perror("malloc");
+//         return 0;
+//     }
+
+//     setString(gemObjectsPages[0].name, "gem_names", sizeof(gemObjectsPages[0].name));
+//     setString(gemObjectsPages[0].type, "page", sizeof(gemObjectsPages[0].type));
+//     gemObjectsPages[0].displayFunction = displayDebugfsFile;
+//     gemObjectsPages[0].submenu = NULL;
+//     gemObjectsPages[0].submenuSize = 0;
+
+//     setString(gemObjectsPages[1].name, "i915_gem_objects", sizeof(gemObjectsPages[1].name));
+//     setString(gemObjectsPages[1].type, "page", sizeof(gemObjectsPages[1].type));
+//     gemObjectsPages[1].displayFunction = displayDebugfsFile;
+//     gemObjectsPages[1].submenu = NULL;
+//     gemObjectsPages[1].submenuSize = 0;
+
+//     setString(gemObjectsPages[2].name, "i915_gem_framebuffer", sizeof(gemObjectsPages[2].name));
+//     setString(gemObjectsPages[2].type, "page", sizeof(gemObjectsPages[2].type));
+//     gemObjectsPages[2].displayFunction = displayDebugfsFile;
+//     gemObjectsPages[2].submenu = NULL;
+//     gemObjectsPages[2].submenuSize = 0;
+
+//     return 3;
+// }
+
+// int initializeGpuInfoMenu()
+// {
+//     int count = 0;
+//     int index = 0;
+
+//     gpuInfoMenu = (Node *)malloc(3 * sizeof(Node));
+//     if (!gpuInfoMenu)
+//     {
+//         perror("malloc");
+//         return 0;
+//     }
+
+//     setString(gpuInfoMenu[index].name, "GPU General Information", sizeof(gpuInfoMenu[index].name));
+//     setString(gpuInfoMenu[index].type, "page", sizeof(gpuInfoMenu[index].type));
+//     gpuInfoMenu[index].displayFunction = displayDebugfsFile;
+//     gpuInfoMenu[index].submenu = NULL;
+//     gpuInfoMenu[index].submenuSize = 0;
+//     index++;
+
+//     setString(gpuInfoMenu[index].name, "Engine Information", sizeof(gpuInfoMenu[index].name));
+//     setString(gpuInfoMenu[index].type, "page", sizeof(gpuInfoMenu[index].type));
+//     gpuInfoMenu[index].displayFunction = displayDebugfsFile;
+//     gpuInfoMenu[index].submenu = NULL;
+//     gpuInfoMenu[index].submenuSize = 0;
+//     index++;
+
+//     setString(gpuInfoMenu[index].name, "GEM Objects", sizeof(gpuInfoMenu[index].name));
+//     setString(gpuInfoMenu[index].type, "page", sizeof(gpuInfoMenu[index].type));
+//     gpuInfoMenu[index].displayFunction = displayDebugfsFile;
+//     gpuInfoMenu[index].submenu = NULL;
+//     gpuInfoMenu[index].submenuSize = 0;
+//     index++;
+
+//     return 3;
+// }
 
 void initializeMainMenu()
 {

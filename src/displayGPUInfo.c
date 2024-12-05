@@ -12,7 +12,6 @@
 
 
 
-
 void displayDebugfsFile(WINDOW *pad, const char *file_name, int *content_line) {
 
     char full_file_path[256];

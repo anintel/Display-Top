@@ -21,31 +21,17 @@ int main()
     init_pair(2, COLOR_GREEN, COLOR_BLACK);
     init_pair(3, COLOR_RED, COLOR_BLACK);
     init_pair(4, COLOR_WHITE, COLOR_GREEN);
-    // bkgd(COLOR_PAIR());
 
     int level = 0;
 
-    // WINDOW *summary = newwin(getmaxy(stdscr) / 2, getmaxx(stdscr), 0, 0);
-    // keypad(summary, TRUE);
-    // scrollok(summary, TRUE);
-    // wrefresh(summary);
+    // uncomment these two functions for the app
 
-    // WINDOW *menu = newwin(getmaxy(stdscr) / 2, getmaxx(stdscr), getmaxy(stdscr) / 2, 0);
-    // keypad(menu, TRUE);
-    // mvwprintw(menu, 1, 1, "MAIN MENU");
-    // wrefresh(menu);
+    populateData();
+    displayHomePage();
 
-    // populateData();
+    // testing stuff
 
-    // displayHomePage();
-
-
-    scrollablePage(stdscr, "i915_capabilities", displayDebugfsFile);
-
-    // ScrollablePage(stdscr, "Scrollable Page");
-
-
-    
+    // scrollablePage(stdscr, "i915_capabilities", displayDebugfsFile);
 
     endwin();
     return 0;
