@@ -2,9 +2,9 @@
 *.o
 *.a
 *.so
+*.dll
 *.exe
 *.out
-*.dll
 
 # Ignore precompiled headers
 *.gch
@@ -14,43 +14,42 @@
 *.d
 
 # Ignore debug and release directories
-/debug/
-/release/
+debug/
+release/
 
-# Ignore build directories
-/build/
-/bin/
-/obj/
+# Ignore build and output directories
+build/
+bin/
+obj/
 
-# Ignore temporary files
+# Ignore temporary and log files
 *.tmp
 *.temp
 *.log
 
-# Ignore editor and IDE specific files
-*.swp
-*~
+# Ignore editor and IDE-specific files
 .vscode/
 .idea/
 *.code-workspace
+*.swp
+*~
 
 # Ignore OS-specific files
 .DS_Store
 Thumbs.db
 
+# Ignore autotools generated files
+autom4te.cache/
+config.log
+config.status
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+stamp-h1
 
-# Ignore autotools files
-/autom4te.cache/
-/config.log
-/config.status
-/configure
-/depcomp
-/install-sh
-/ltmain.sh
-/missing
-/stamp-h1
-
-# Ignore compiled Python files
+# Ignore Python bytecode and cache files
 *.pyc
 *.pyo
 __pycache__/
@@ -60,8 +59,7 @@ __pycache__/
 *.gcno
 *.gcov
 
-# Ignore test binaries
-/tests/*.o
-/tests/*.out
-/tests/*.exe
-.vscode/settings.json
+# Ignore test binaries and outputs
+tests/*.o
+tests/*.out
+tests/*.exe
