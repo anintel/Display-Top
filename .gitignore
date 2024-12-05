@@ -1,52 +1,65 @@
-# Prerequisites
-*.d
-
-# Object files
+# Ignore object files, shared libraries, and executables
 *.o
-*.ko
-*.obj
-*.elf
+*.a
+*.so
+*.dll
+*.exe
+*.out
 
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
+# Ignore precompiled headers
 *.gch
 *.pch
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# Ignore dependency files
+*.d
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+# Ignore debug and release directories
+debug/
+release/
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+# Ignore build and output directories
+build/
+bin/
+obj/
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# Ignore temporary and log files
+*.tmp
+*.temp
+*.log
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# Ignore editor and IDE-specific files
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*~
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore autotools generated files
+autom4te.cache/
+config.log
+config.status
+configure
+depcomp
+install-sh
+ltmain.sh
+missing
+stamp-h1
+
+# Ignore Python bytecode and cache files
+*.pyc
+*.pyo
+__pycache__/
+
+# Ignore coverage files
+*.gcda
+*.gcno
+*.gcov
+
+# Ignore test binaries and outputs
+tests/*.o
+tests/*.out
+tests/*.exe
