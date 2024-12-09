@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude -I/usr/include/libdrm
-LDFLAGS = -ldrm -lncurses -lmenu -lform
+LDFLAGS = -ldrm -lncurses -lmenu -lform -lpanel
 
 SRC_DIR = src
 BUILD_DIR = build

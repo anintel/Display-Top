@@ -63,3 +63,22 @@ void print_green_text(WINDOW *win, int line, int col, const char *text)
         wattroff(win, COLOR_PAIR(2));
     }
 }
+
+void setString(char *dest, const char *src, size_t size)
+{
+    strncpy(dest, src, size - 1);
+    dest[size - 1] = '\0';
+}
+
+int check_size_change(WINDOW *win, int *height, int *width)
+{
+    int new_height, new_width;
+    getmaxyx(win, new_height, new_width);
+    if (new_height != *height || new_width != *width)
+    {
+        *height = new_height;
+        *width = new_width;
+        return 1;
+    }
+    return 0;
+}

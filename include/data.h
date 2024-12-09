@@ -10,9 +10,10 @@ extern Node *framebufferPages;
 extern Node *planePages;
 
 extern Node *displayConfigMenu; 
+extern Node *gpuInfoMenu;
+extern Node *powerManagementMenu;
 
 extern Node *mainMenu;
-
 
 extern Node displayConfigPages[];
 extern Node gpuInfoPages[];
@@ -23,9 +24,6 @@ extern Node debuggingErrorInfoPages[];
 extern Node driverModuleInfoPages[];
 extern Node internalClientInfoPages[];
 extern Node systemStatePages[];
-
-extern Node gpuInfoMenu[];
-extern Node powerManagementMenu[];
 
 extern size_t mainMenuSize;
 extern size_t gpuInfoPagesSize;

@@ -2,8 +2,11 @@
 #define DISPLAY_H
 
 #include "node.h"
+#include "utils.h"
 
 void displayHomePage();
+
+void doublePage(WINDOW *win, Node* node);
 
 void displayMenu(WINDOW *win, Node *nodes, int count);
 void displayMenu2(WINDOW *win, Node *nodes, int count);
@@ -14,7 +17,7 @@ void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(W
 
 void displayMainMenu(WINDOW *win);
 
-void displaySummary(WINDOW *win);
+void displaySummary(WINDOW *pad, int *content_line);
 
 const char *get_connector_type_name(uint32_t connector_type);
 const char *get_encoder_type_name(uint32_t encoder_type);

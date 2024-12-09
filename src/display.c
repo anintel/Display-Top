@@ -22,7 +22,7 @@ void displayHomePage()
 
     while (1)
     {
-        displaySummary(summary);
+        // displaySummary(summary);
 
         wclear(menu);
         wresize(menu, getmaxy(stdscr) / 2, getmaxx(stdscr));
@@ -236,9 +236,85 @@ void displayMenu2(WINDOW *win, Node *nodes, int count)
     free(items);
 }
 
+void displayMenu3(WINDOW *win, Node *node)
+{
 
-displayMenu3(WINDOW *win, Node *node){
-    
+    int highlight = 0;
+    int ch, line, start;
+
+    wresize(win, getmaxy(stdscr), getmaxx(stdscr));
+    mvwin(win, 0, 0);
+    wclear(win);
+    box(win, 0, 0);
+
+    line = node->displayFunction(win) + 1;
+    mvhline(line++, 1, ACS_HLINE, getmaxx(win) - 2);
+    start = line;
+
+    while (1)
+    {
+        start = line;
+
+        mvwprintw(win, start++, 1, "Submenu size: %d", node->submenuSize);
+
+        // Display submenu
+        for (int i = 0; i < node->submenuSize; ++i)
+        {
+            if (highlight == i)
+            {
+                wattron(win, A_REVERSE);
+            }
+            mvwprintw(win, start + i + 1, 1, node->submenu[i].name);
+            wattroff(win, A_REVERSE);
+        }
+        mvwprintw(win, start + 15, 1, "Use Arrow Keys to Navigate, Enter to Select, 'e' to Exit");
+        wrefresh(win);
+
+        ch = wgetch(win);
+        switch (ch)
+        {
+        case KEY_UP:
+            highlight = (highlight == 0) ? node->submenuSize - 1 : highlight - 1;
+            break;
+        case KEY_DOWN:
+            highlight = (highlight == node->submenuSize - 1) ? 0 : highlight + 1;
+            break;
+        case 'e':
+            return;
+        case '\n':
+            if (strcmp(node->submenu[highlight].type, "menu") == 0)
+            {
+                if (node->submenu[highlight].submenuSize == 0)
+                {
+                    displayPage(win, node->submenu[highlight].name);
+                }
+                else
+                {
+                    displayMenu(win, node->submenu[highlight].submenu, node->submenu[highlight].submenuSize);
+                }
+            }
+            else if (strcmp(node->submenu[highlight].type, "page") == 0)
+            {
+                if (node->submenu[highlight].displayFunction != NULL)
+                {
+                    node->submenu[highlight].displayFunction(win, node->submenu[highlight].name);
+                }
+                else
+                {
+                    displayPage(win, node->submenu[highlight].name);
+                    wresize(win, getmaxy(stdscr), getmaxx(stdscr));
+                    mvwin(win, 0, 0);
+                    wclear(win);
+                    box(win, 0, 0);
+
+                    line = node->displayFunction(win) + 1;
+                    mvhline(line++, 1, ACS_HLINE, getmaxx(win) - 2);
+                    start = line;
+                }
+            }
+            break;
+        }
+    }
 }
 
 void displayPage(WINDOW *win, const char *pageName)
@@ -253,19 +329,6 @@ void displayPage(WINDOW *win, const char *pageName)
     while ((ch = wgetch(win)) != 'e')
     {
     }
-}
-
-int check_size_change(WINDOW *win, int *height, int *width)
-{
-    int new_height, new_width;
-    getmaxyx(win, new_height, new_width);
-    if (new_height != *height || new_width != *width)
-    {
-        *height = new_height;
-        *width = new_width;
-        return 1;
-    }
-    return 0;
 }
 
 void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(WINDOW *, const char *, int *))
@@ -348,4 +411,173 @@ void scrollablePage(WINDOW *win, const char *pageName, void (*displayFunction)(W
 void displayMainMenu(WINDOW *win)
 {
     displayMenu(win, mainMenu, mainMenuSize);
+}
+
+void doublePage(WINDOW *win, Node *node)
+{
+    int height, width;
+    getmaxyx(win, height, width);
+
+    bool focus_on_top = false;
+
+    int pad_height = 100;
+
+    int menu_pad_height = node->submenuSize;
+    int pad_width = getmaxx(win) - 2;
+
+    int display_pad_height = height - menu_pad_height - 8;
+
+    int dpy = 4;
+    int mpy = height - 1 - menu_pad_height;
+
+    wclear(win);
+    wbkgd(win, COLOR_PAIR(2));
+    box(win, 0, 0);
+
+    print_bold_text(win, 1, 1, node->name);
+    mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
+    wrefresh(win);
+
+    WINDOW *display_pad = newpad(pad_height, pad_width);
+    WINDOW *menu_pad = newpad(menu_pad_height, pad_width);
+
+    wclear(display_pad);
+
+    int count = 100;
+    node->displayFunction(display_pad, &count);
+    if (count < pad_height)
+    {
+        pad_height = count;
+    }
+
+    wclear(menu_pad);
+
+    mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
+
+    prefresh(display_pad, 0, 0, dpy, 1, dpy + display_pad_height, pad_width);
+    prefresh(menu_pad, 0, 0, mpy, 1, mpy + menu_pad_height + 1, pad_width);
+
+    int ch;
+    int display_pad_pos = 0;
+    int highlight = 0;
+
+    while (1)
+    {
+        if (check_size_change(win, &height, &width) == 1)
+        {
+            wclear(win);
+            box(win, 0, 0);
+            print_bold_text(win, 1, 1, node->name);
+            mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
+            wrefresh(win);
+
+            display_pad_height = height - menu_pad_height - 8;
+            mpy = height - 1 - menu_pad_height;
+            mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
+            prefresh(display_pad, display_pad_pos, 0, dpy, 1, dpy + display_pad_height, pad_width);
+            prefresh(menu_pad, 0, 0, mpy, 1, mpy + menu_pad_height + 1, pad_width);
+        }
+
+        if (display_pad_pos > 0)
+            print_bold_text(win, 3, 1, "...");
+        else
+            mvwprintw(win, 3, 1, "   ");
+
+        if (display_pad_pos < pad_height - (display_pad_height))
+            print_bold_text(win, mpy - 2, 1, "...");
+        else
+            mvwprintw(win, mpy - 2, 1, "   ");
+
+        if (focus_on_top)
+        {
+
+            print_bold_text(win, dpy, width - 6, "***");
+        }
+        else
+        {
+            print_bold_text(win, mpy, width - 6, "***");
+        }
+
+        for (int i = 0; i < node->submenuSize; ++i)
+        {
+            if (highlight == i && !focus_on_top)
+            {
+                wattron(menu_pad, A_REVERSE);
+            }
+            mvwprintw(menu_pad, i, 1, node->submenu[i].name);
+            wattroff(menu_pad, A_REVERSE);
+        }
+
+        prefresh(menu_pad, 0, 0, mpy, 1, mpy + menu_pad_height + 1, pad_width);
+        prefresh(display_pad, display_pad_pos, 0, dpy, 1, dpy + display_pad_height, pad_width);
+
+        ch = wgetch(win);
+        switch (ch)
+        {
+        case KEY_UP:
+            if (focus_on_top)
+            {
+                if (display_pad_pos > 0)
+                    display_pad_pos--;
+            }
+            else
+            {
+                highlight = (highlight == 0) ? node->submenuSize - 1 : highlight - 1;
+            }
+            break;
+
+        case KEY_DOWN:
+            if (focus_on_top)
+            {
+                if (display_pad_pos < pad_height - (display_pad_height))
+                    display_pad_pos++;
+            }
+            else
+            {
+                highlight = (highlight == node->submenuSize - 1) ? 0 : highlight + 1;
+            }
+            break;
+        case 'e':
+            return;
+        case '\n':
+            if (!focus_on_top)
+            {
+                if (strcmp(node->submenu[highlight].type, "menu") == 0)
+                {
+                    if (node->submenu[highlight].submenuSize == 0)
+                    {
+                        displayPage(win, node->submenu[highlight].name);
+                    }
+                    else
+                    {
+                        displayMenu(win, node->submenu[highlight].submenu, node->submenu[highlight].submenuSize);
+                    }
+                }
+                else if (strcmp(node->submenu[highlight].type, "page") == 0)
+                {
+                    if (node->submenu[highlight].displayFunction != NULL)
+                    {
+                        void (*displayFunc)(WINDOW *, const char *, int *) = node->submenu[highlight].displayFunction;
+                        scrollablePage(win, node->submenu[highlight].name, displayFunc);
+                    }
+                    else
+                    {
+                        displayPage(win, node->submenu[highlight].name);
+                    }
+                }
+
+                wclear(win);
+                box(win, 0, 0);
+                print_bold_text(win, 1, 1, node->name);
+                mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
+                mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
+                wrefresh(win);
+            }
+            break;
+
+        case '\t':
+            focus_on_top = !focus_on_top;
+            break;
+        }
+    }
 }

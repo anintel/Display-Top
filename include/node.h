@@ -6,7 +6,7 @@
 typedef struct Node {
     char name[50];
     char type[10]; 
-    void (*displayFunction)(WINDOW*, ...); 
+    int (*displayFunction)(WINDOW*, ...); 
     struct Node* submenu;            
     int submenuSize;                 
 } Node;
