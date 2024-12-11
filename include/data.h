@@ -3,13 +3,14 @@
 
 #include "node.h"
 
+extern Node *root;
 extern Node *crtcPages;
 extern Node *connectorPages;
 extern Node *encoderPages;
 extern Node *framebufferPages;
 extern Node *planePages;
 
-extern Node *displayConfigMenu; 
+extern Node *displayConfig; 
 extern Node *gpuInfoMenu;
 extern Node *powerManagementMenu;
 

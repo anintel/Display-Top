@@ -1,13 +1,15 @@
 #include "data.h"
 #include "display.h"
 
+Node *root;
+
 Node *crtcPages;
 Node *connectorPages;
 Node *encoderPages;
 Node *framebufferPages;
 Node *planePages;
 
-Node *displayConfigMenu;
+Node *displayConfig;
 Node *gpuInfoMenu;
 
 Node gpuInfoPages[] = {

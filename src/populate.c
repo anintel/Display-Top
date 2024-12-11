@@ -12,7 +12,7 @@
 
 void populateData()
 {
-    initializeMainMenu();
+    addRootChildren();
 }
 
 int initializeCrtcPages()
@@ -34,7 +34,7 @@ int initializeCrtcPages()
 
     int crtcCount = -1;
     crtcCount = resources->count_crtcs;
-    crtcPages = (Node *)malloc(crtcCount * sizeof(Node));
+    crtcPages = createNode("CRTCs", NULL, displayConfig);
     if (!crtcPages)
     {
         perror("malloc");
@@ -46,12 +46,9 @@ int initializeCrtcPages()
     for (int i = 0; i < crtcCount; ++i)
     {
         char crtcName[10];
-        snprintf(crtcName, sizeof(crtcName), "CRTC%d", i + 1);
-        setString(crtcPages[i].name, crtcName, sizeof(crtcPages[i].name));
-        setString(crtcPages[i].type, "page", sizeof(crtcPages[i].type));
-        crtcPages[i].displayFunction = displayCrtc;
-        crtcPages[i].submenu = NULL;
-        crtcPages[i].submenuSize = 0;
+        snprintf(crtcName, sizeof(crtcName), "CRTC%d", i);
+        Node *crtcNode = createNode(crtcName, displayCrtc, crtcPages);
+        addChild(crtcPages, crtcNode);
     }
 
     drmModeFreeResources(resources);
@@ -79,7 +76,7 @@ int initializeConnectorPages()
 
     int connectorCount = -1;
     connectorCount = resources->count_connectors;
-    connectorPages = (Node *)malloc(connectorCount * sizeof(Node));
+    connectorPages = createNode("Connectors", NULL, displayConfig);
     if (!connectorPages)
     {
         perror("malloc");
@@ -91,12 +88,9 @@ int initializeConnectorPages()
     for (int i = 0; i < connectorCount; ++i)
     {
         char connectorName[15];
-        snprintf(connectorName, sizeof(connectorName), "Connector%d", i + 1);
-        setString(connectorPages[i].name, connectorName, sizeof(connectorPages[i].name));
-        setString(connectorPages[i].type, "page", sizeof(connectorPages[i].type));
-        connectorPages[i].displayFunction = displayConnector;
-        connectorPages[i].submenu = NULL;
-        connectorPages[i].submenuSize = 0;
+        snprintf(connectorName, sizeof(connectorName), "Connector%d", i);
+        Node *connectorNode = createNode(connectorName, displayConnector, connectorPages);
+        addChild(connectorPages, connectorNode);
     }
 
     drmModeFreeResources(resources);
@@ -124,7 +118,7 @@ int initializeEncoderPages()
 
     int encoderCount = -1;
     encoderCount = resources->count_encoders;
-    encoderPages = (Node *)malloc(encoderCount * sizeof(Node));
+    encoderPages = createNode("Encoders", NULL, displayConfig);
     if (!encoderPages)
     {
         perror("malloc");
@@ -136,12 +130,9 @@ int initializeEncoderPages()
     for (int i = 0; i < encoderCount; ++i)
     {
         char encoderName[15];
-        snprintf(encoderName, sizeof(encoderName), "Encoder%d", i + 1);
-        setString(encoderPages[i].name, encoderName, sizeof(encoderPages[i].name));
-        setString(encoderPages[i].type, "page", sizeof(encoderPages[i].type));
-        encoderPages[i].displayFunction = displayEncoder;
-        encoderPages[i].submenu = NULL;
-        encoderPages[i].submenuSize = 0;
+        snprintf(encoderName, sizeof(encoderName), "Encoder%d", i);
+        Node *encoderNode = createNode(encoderName, displayEncoder, encoderPages);
+        addChild(encoderPages, encoderNode);
     }
 
     drmModeFreeResources(resources);
@@ -169,7 +160,7 @@ int initializeFrameBuffers()
 
     int framebufferCount = -1;
     framebufferCount = resources->count_fbs;
-    framebufferPages = (Node *)malloc(framebufferCount * sizeof(Node));
+    framebufferPages = createNode("Framebuffers", NULL, displayConfig);
     if (!framebufferPages)
     {
         perror("malloc");
@@ -181,12 +172,9 @@ int initializeFrameBuffers()
     for (int i = 0; i < framebufferCount; ++i)
     {
         char framebufferName[15];
-        snprintf(framebufferName, sizeof(framebufferName), "Framebuffer%d", i + 1);
-        setString(framebufferPages[i].name, framebufferName, sizeof(framebufferPages[i].name));
-        setString(framebufferPages[i].type, "page", sizeof(framebufferPages[i].type));
-        framebufferPages[i].displayFunction = displayFramebuffer;
-        framebufferPages[i].submenu = NULL;
-        framebufferPages[i].submenuSize = 0;
+        snprintf(framebufferName, sizeof(framebufferName), "Framebuffer%d", i);
+        Node *framebufferNode = createNode(framebufferName, displayFramebuffer, framebufferPages);
+        addChild(framebufferPages, framebufferNode);
     }
 
     drmModeFreeResources(resources);
@@ -197,7 +185,6 @@ int initializeFrameBuffers()
 
 int initializePlanes()
 {
-
     int fd = open(DRM_DEVICE, O_RDWR);
     if (fd < 0)
     {
@@ -210,14 +197,14 @@ int initializePlanes()
     drmModePlaneRes *resources = drmModeGetPlaneResources(fd);
     if (!resources)
     {
-        perror("drmModeGetResources");
+        perror("drmModeGetPlaneResources");
         close(fd);
         return 0;
     }
 
     int planeCount = -1;
     planeCount = resources->count_planes;
-    planePages = (Node *)malloc(planeCount * sizeof(Node));
+    planePages = createNode("Planes", NULL, displayConfig);
     if (!planePages)
     {
         perror("malloc");
@@ -230,37 +217,40 @@ int initializePlanes()
     {
         char planeName[10];
         snprintf(planeName, sizeof(planeName), "Plane%d", i);
-        setString(planePages[i].name, planeName, sizeof(planePages[i].name));
-        setString(planePages[i].type, "menu", sizeof(planePages[i].type));
-        planePages[i].displayFunction = displayPlane;
-        planePages[i].submenu = NULL;
-        planePages[i].submenuSize = 0;
-        
-        planePages[i].submenu = (Node *)malloc(2 * sizeof(Node));
-        if (!planePages[i].submenu)
+        Node *planeNode = createNode(planeName, displayPlane, planePages);
+
+        char informatsName[15];
+        snprintf(informatsName, sizeof(informatsName), "IN_FORMATS%d", i);
+        Node *informatsNode = createNode(informatsName, displayInformats, planeNode);
+        addChild(planeNode, informatsNode);
+
+        char outformatsName[15];
+        snprintf(outformatsName, sizeof(outformatsName), "FORMATS%d", i);
+        Node *outformatsNode = createNode(outformatsName, displayFormats, planeNode);
+        addChild(planeNode, outformatsNode);
+
+        drmModePlane *plane = drmModeGetPlane(fd, resources->planes[i]);
+        if (!plane)
         {
-            perror("malloc");
+            perror("drmModeGetPlane");
             drmModeFreePlaneResources(resources);
             close(fd);
             return 0;
         }
 
-        char informatsName[15];
-        snprintf(informatsName, sizeof(informatsName), "IN_FORMATS%d", i);
-        setString(planePages[i].submenu[0].name, informatsName, sizeof(planePages[i].submenu[0].name));
-        setString(planePages[i].submenu[0].type, "page", sizeof(planePages[i].submenu[0].type));
-        planePages[i].submenu[0].displayFunction = displayInformats;
-        planePages[i].submenu[0].submenu = NULL;
-        planePages[i].submenu[0].submenuSize = 0;
+        for (int j = 0; j < 32; j++)
+        {
+            if (plane->possible_crtcs & (1 << j))
+            {
+                char crtcName[10];
+                snprintf(crtcName, sizeof(crtcName), "CRTC%d", j);
+                Node *crtcNode = createNode(crtcName, displayCrtc, planeNode);
+                addChild(planeNode, crtcNode);
+            }
+        }
 
-        setString(planePages[i].submenu[1].name, "Goto CRTC", sizeof(planePages[i].submenu[1].name));
-        setString(planePages[i].submenu[1].type, "page", sizeof(planePages[i].submenu[1].type));
-        planePages[i].submenu[1].displayFunction = gotoCrtc;
-        planePages[i].submenu[1].submenu = NULL;
-        planePages[i].submenu[1].submenuSize = 0;
-
-        planePages[i].submenuSize = 2;
-
+        drmModeFreePlane(plane);
+        addChild(planePages, planeNode);
     }
 
     drmModeFreePlaneResources(resources);
@@ -269,282 +259,62 @@ int initializePlanes()
     return planeCount;
 }
 
-int initializeDisplayConfigMenu()
+void initializedisplayConfig()
 {
-    int count = 0;
-    int index = 0;
-
-    int crtcsSize = initializeCrtcPages();
-    // todo: don't check for zero check for -1. update the init functions aswell.
-    if (crtcsSize == 0)
-        return NULL;
-    else
-        count++;
-
-    int planesSize = initializePlanes();
-    if (planesSize == 0)
-        // return NULL;
-        count++;
-    else
-        count++;
-
-    int connectorsSize = initializeConnectorPages();
-    if (connectorsSize == 0)
-        return NULL;
-    else
-        count++;
-
-    int encodersSize = initializeEncoderPages();
-    if (encodersSize == 0)
-        return NULL;
-    else
-        count++;
-
-    int framebuffersSize = initializeFrameBuffers();
-    if (framebuffersSize == 0)
-        // return NULL;
-        count++;
-    else
-        count++;
-
-    count++;
-    count++;
-
-    displayConfigMenu = (Node *)malloc(count * sizeof(Node));
-    if (!displayConfigMenu)
+    displayConfig = createNode("Display Configuration", NULL, root);
+    if (!displayConfig)
     {
         perror("malloc");
         free(crtcPages);
         return;
     }
 
-    setString(displayConfigMenu[index].name, "CRTCs", sizeof(displayConfigMenu[index].name));
-    setString(displayConfigMenu[index].type, "menu", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
-    displayConfigMenu[index].submenu = crtcPages;
-    displayConfigMenu[index].submenuSize = crtcsSize;
-    index++;
+    initializePlanes();
+    addChild(displayConfig, planePages);
+    
+    initializeCrtcPages();
+    addChild(displayConfig, crtcPages);
 
-    setString(displayConfigMenu[index].name, "Planes", sizeof(displayConfigMenu[index].name));
-    setString(displayConfigMenu[index].type, "menu", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
-    displayConfigMenu[index].submenu = planePages;
-    displayConfigMenu[index].submenuSize = planesSize;
-    index++;
+    initializeConnectorPages();
+    addChild(displayConfig, connectorPages);
 
-    setString(displayConfigMenu[index].name, "Connectors", sizeof(displayConfigMenu[index].name));
-    setString(displayConfigMenu[index].type, "menu", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
-    displayConfigMenu[index].submenu = connectorPages;
-    displayConfigMenu[index].submenuSize = connectorsSize;
-    index++;
+    initializeEncoderPages();
+    addChild(displayConfig, encoderPages);
 
-    setString(displayConfigMenu[index].name, "Encoders", sizeof(displayConfigMenu[index].name));
-    setString(displayConfigMenu[index].type, "menu", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
-    displayConfigMenu[index].submenu = encoderPages;
-    displayConfigMenu[index].submenuSize = encodersSize;
-    index++;
+    initializeFrameBuffers();
+    addChild(displayConfig, framebufferPages);
 
-    setString(displayConfigMenu[index].name, "Framebuffers", sizeof(displayConfigMenu[index].name));
-    setString(displayConfigMenu[index].type, "menu", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
-    displayConfigMenu[index].submenu = framebufferPages;
-    displayConfigMenu[index].submenuSize = framebuffersSize;
-    index++;
-
-    setString(displayConfigMenu[index].name, "Other Display Info", sizeof(displayConfigMenu[index].name));
-    setString(displayConfigMenu[index].type, "page", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = NULL;
-    displayConfigMenu[index].submenu = NULL;
-    displayConfigMenu[index].submenuSize = 0;
-    index++;
-
-    return count;
-}
-
-// int initializeGpuGeneralInfo()
-// {
-//     gpuGeneralInfoPages = (Node *)malloc(1 * sizeof(Node));
-//     if (!gpuGeneralInfoPages)
-//     {
-//         perror("malloc");
-//         return 0;
-//     }
-
-//     setString(gpuGeneralInfoPages[0].name, "i915_gpu_info", sizeof(gpuGeneralInfoPages[0].name));
-//     setString(gpuGeneralInfoPages[0].type, "page", sizeof(gpuGeneralInfoPages[0].type));
-//     gpuGeneralInfoPages[0].displayFunction = displayDebugfsFile;
-//     gpuGeneralInfoPages[0].submenu = NULL;
-//     gpuGeneralInfoPages[0].submenuSize = 0;
-
-//     return 1;
-// }
-
-// int initializeEngineInfo()
-// {
-//     engineInfoPages = (Node *)malloc(1 * sizeof(Node));
-//     if (!engineInfoPages)
-//     {
-//         perror("malloc");
-//         return 0;
-//     }
-
-//     setString(engineInfoPages[0].name, "i915_engine_info", sizeof(engineInfoPages[0].name));
-//     setString(engineInfoPages[0].type, "page", sizeof(engineInfoPages[0].type));
-//     engineInfoPages[0].displayFunction = displayDebugfsFile;
-//     engineInfoPages[0].submenu = NULL;
-//     engineInfoPages[0].submenuSize = 0;
-
-//     return 1;
-// }
-
-// int initializeGemObjects()
-// {
-//     gemObjectsPages = (Node *)malloc(3 * sizeof(Node));
-//     if (!gemObjectsPages)
-//     {
-//         perror("malloc");
-//         return 0;
-//     }
-
-//     setString(gemObjectsPages[0].name, "gem_names", sizeof(gemObjectsPages[0].name));
-//     setString(gemObjectsPages[0].type, "page", sizeof(gemObjectsPages[0].type));
-//     gemObjectsPages[0].displayFunction = displayDebugfsFile;
-//     gemObjectsPages[0].submenu = NULL;
-//     gemObjectsPages[0].submenuSize = 0;
-
-//     setString(gemObjectsPages[1].name, "i915_gem_objects", sizeof(gemObjectsPages[1].name));
-//     setString(gemObjectsPages[1].type, "page", sizeof(gemObjectsPages[1].type));
-//     gemObjectsPages[1].displayFunction = displayDebugfsFile;
-//     gemObjectsPages[1].submenu = NULL;
-//     gemObjectsPages[1].submenuSize = 0;
-
-//     setString(gemObjectsPages[2].name, "i915_gem_framebuffer", sizeof(gemObjectsPages[2].name));
-//     setString(gemObjectsPages[2].type, "page", sizeof(gemObjectsPages[2].type));
-//     gemObjectsPages[2].displayFunction = displayDebugfsFile;
-//     gemObjectsPages[2].submenu = NULL;
-//     gemObjectsPages[2].submenuSize = 0;
-
-//     return 3;
-// }
-
-// int initializeGpuInfoMenu()
-// {
-//     int count = 0;
-//     int index = 0;
-
-//     gpuInfoMenu = (Node *)malloc(3 * sizeof(Node));
-//     if (!gpuInfoMenu)
-//     {
-//         perror("malloc");
-//         return 0;
-//     }
-
-//     setString(gpuInfoMenu[index].name, "GPU General Information", sizeof(gpuInfoMenu[index].name));
-//     setString(gpuInfoMenu[index].type, "page", sizeof(gpuInfoMenu[index].type));
-//     gpuInfoMenu[index].displayFunction = displayDebugfsFile;
-//     gpuInfoMenu[index].submenu = NULL;
-//     gpuInfoMenu[index].submenuSize = 0;
-//     index++;
-
-//     setString(gpuInfoMenu[index].name, "Engine Information", sizeof(gpuInfoMenu[index].name));
-//     setString(gpuInfoMenu[index].type, "page", sizeof(gpuInfoMenu[index].type));
-//     gpuInfoMenu[index].displayFunction = displayDebugfsFile;
-//     gpuInfoMenu[index].submenu = NULL;
-//     gpuInfoMenu[index].submenuSize = 0;
-//     index++;
-
-//     setString(gpuInfoMenu[index].name, "GEM Objects", sizeof(gpuInfoMenu[index].name));
-//     setString(gpuInfoMenu[index].type, "page", sizeof(gpuInfoMenu[index].type));
-//     gpuInfoMenu[index].displayFunction = displayDebugfsFile;
-//     gpuInfoMenu[index].submenu = NULL;
-//     gpuInfoMenu[index].submenuSize = 0;
-//     index++;
-
-//     return 3;
-// }
-
-void initializeMainMenu()
-{
-    int count = 0;
-    int displayConfigCount = initializeDisplayConfigMenu();
-
-    if (!displayConfigMenu)
-    {
-        printf("Failed to initialize displayConfigMenu\n");
-        return;
-    }
-    mainMenu = (Node *)malloc(9 * sizeof(Node));
-    if (!mainMenu)
+    Node *OtherInfo = createNode("Other Display Info", NULL, displayConfig);
+    if (!OtherInfo)
     {
         perror("malloc");
-        free(displayConfigMenu);
+        free(crtcPages);
         return;
     }
 
-    setString(mainMenu[count].name, "Display Configuration", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = displayConfigMenu;
-    mainMenu[count].submenuSize = displayConfigCount;
-    count++;
+    addChild(displayConfig, OtherInfo);
+}
 
-    setString(mainMenu[count].name, "GPU Information", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = gpuInfoPages;
-    mainMenu[count].submenuSize = gpuInfoPagesSize;
-    count++;
+void addRootChildren()
+{
+    root = createNode("Display Top", displaySummary, NULL);
 
-    setString(mainMenu[count].name, "Power Management", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = powerManagementPages;
-    mainMenu[count].submenuSize = powerManagementPagesSize;
-    count++;
+    initializedisplayConfig();
+    addChild(root, displayConfig);
 
-    setString(mainMenu[count].name, "Display Capabilities", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = displayCapabilitiesPages;
-    mainMenu[count].submenuSize = displayCapabilitiesPagesSize;
-    count++;
+    addChild(root, createNode("GPU Information", NULL, root));
 
-    setString(mainMenu[count].name, "Performance Tuning", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = performanceTuningPages;
-    mainMenu[count].submenuSize = performanceTuningPagesSize;
-    count++;
+    addChild(root, createNode("Power Management", NULL, root));
 
-    setString(mainMenu[count].name, "Debugging and Error Info", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = debuggingErrorInfoPages;
-    mainMenu[count].submenuSize = debuggingErrorInfoPagesSize;
-    count++;
+    addChild(root, createNode("Display Capabilities", NULL, root));
 
-    setString(mainMenu[count].name, "Driver and Module Info", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = driverModuleInfoPages;
-    mainMenu[count].submenuSize = driverModuleInfoPagesSize;
-    count++;
+    addChild(root, createNode("Performance Tuning", NULL, root));
 
-    setString(mainMenu[count].name, "Internal and Client Info", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = internalClientInfoPages;
-    mainMenu[count].submenuSize = internalClientInfoPagesSize;
-    count++;
+    addChild(root, createNode("Debugging and Error Info", NULL, root));
 
-    setString(mainMenu[count].name, "System State", sizeof(mainMenu[count].name));
-    setString(mainMenu[count].type, "menu", sizeof(mainMenu[count].type));
-    mainMenu[count].displayFunction = NULL;
-    mainMenu[count].submenu = systemStatePages;
-    mainMenu[count].submenuSize = systemStatePagesSize;
-    count++;
+    addChild(root, createNode("Driver and Module Info", NULL, root));
 
-    mainMenuSize = count;
+    addChild(root, createNode("Internal and Client Info", NULL, root));
+
+    addChild(root, createNode("System State", NULL, root));
 }

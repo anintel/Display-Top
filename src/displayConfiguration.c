@@ -27,7 +27,7 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
     int crtc_index = -1;
     char *endptr;
 
-    crtc_index = strtol(page_name + 4, &endptr, 10) - 1;
+    crtc_index = strtol(page_name + 4, &endptr, 10);
     if (*endptr != '\0' || crtc_index < 0 || crtc_index >= resources->count_crtcs)
     {
         mvwprintw(pad, line++, 1, "Invalid CRTC name: %s\n", page_name);
@@ -126,7 +126,7 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
             wattron(pad, A_DIM);
             wprintw(pad, "%s%s: ", immutability, atomicity);
 
-            int remaining_width = getmaxx(pad) - getcurx(pad) - 1;
+            int remaining_width = getmaxx(pad) - getcurx(pad);
             if (strlen(value_str) > remaining_width)
             {
                 char truncated_value[remaining_width + 1];
@@ -185,7 +185,7 @@ void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
     int connector_index = -1;
     char *endptr;
 
-    connector_index = strtol(page_name + 9, &endptr, 10) - 1;
+    connector_index = strtol(page_name + 9, &endptr, 10);
 
     if (*endptr != '\0' || connector_index < 0 || connector_index >= resources->count_connectors)
     {
@@ -332,7 +332,7 @@ void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
             wprintw(pad, "%s%s: ", immutability, atomicity);
 
             // Handle line overflow
-            int remaining_width = getmaxx(pad) - getcurx(pad) - 1;
+            int remaining_width = getmaxx(pad) - getcurx(pad);
             if (strlen(value_str) > remaining_width)
             {
                 char truncated_value[remaining_width + 1];
@@ -389,7 +389,7 @@ void displayEncoder(WINDOW *pad, const char *page_name, int *content_line)
     int encoder_id = -1;
     char *endptr;
 
-    encoder_id = strtol(page_name + 7, &endptr, 10) - 1;
+    encoder_id = strtol(page_name + 7, &endptr, 10);
     if (*endptr != '\0' || encoder_id < 0 || encoder_id >= resources->count_encoders)
     {
         mvwprintw(pad, line++, 1, "Invalid Encoder name: %s\n", page_name);
@@ -428,7 +428,6 @@ void displayEncoder(WINDOW *pad, const char *page_name, int *content_line)
     close(drm_fd);
     return;
 
-
 err:
     wrefresh(pad);
     wgetch(pad);
@@ -459,7 +458,7 @@ void displayFramebuffer(WINDOW *pad, const char *page_name, int *content_line)
     int framebuffer_id = -1;
     char *endptr;
 
-    framebuffer_id = strtol(page_name + 11, &endptr, 10) - 1;
+    framebuffer_id = strtol(page_name + 11, &endptr, 10);
     if (*endptr != '\0' || framebuffer_id < 0 || framebuffer_id >= resources->count_fbs)
     {
         mvwprintw(pad, line++, 1, "Invalid Framebuffer name: %s\n", page_name);
@@ -499,7 +498,7 @@ err:
     return;
 }
 
-void displayPlane(WINDOW *pad, Node* node, int *content_line)
+void displayPlane(WINDOW *pad, Node *node, int *content_line)
 {
     int line = 0;
 
@@ -543,6 +542,7 @@ void displayPlane(WINDOW *pad, Node* node, int *content_line)
         goto err;
     }
 
+    mvwprintw(pad, line++, 1, "Plane Index: %d", plane_index);
     mvwprintw(pad, line++, 1, "Plane ID: %d", plane->plane_id);
     mvwprintw(pad, line++, 1, "CRTC ID: %d", plane->crtc_id);
     mvwprintw(pad, line++, 1, "Framebuffer ID: %d", plane->fb_id);
@@ -555,23 +555,13 @@ void displayPlane(WINDOW *pad, Node* node, int *content_line)
     {
         if (plane->possible_crtcs & (1 << i))
         {
-            wprintw(pad, "%u ", i);
+            mvwprintw(pad, line++, 3, "CRTC %d", i);
         }
     }
     line++;
 
     mvwprintw(pad, line++, 1, "Number of formats: %u", plane->count_formats);
     line++;
-    if (plane->count_formats > 0)
-    {
-        wattron(pad, A_DIM);
-        for (uint32_t i = 0; i < plane->count_formats; i++)
-        {
-            mvwprintw(pad, line++, 3, "%s (0x%08x)", get_plane_format_name(plane->formats[i]), plane->formats[i]);
-        }
-        line++;
-        wattroff(pad, A_DIM);
-    }
 
     drmModeObjectProperties *props = drmModeObjectGetProperties(drm_fd, plane->plane_id, DRM_MODE_OBJECT_PLANE);
     if (!props)
@@ -639,7 +629,7 @@ void displayPlane(WINDOW *pad, Node* node, int *content_line)
             wprintw(pad, "%s%s: ", immutability, atomicity);
 
             // Handle line overflow
-            int remaining_width = getmaxx(pad) - getcurx(pad) - 1;
+            int remaining_width = getmaxx(pad) - getcurx(pad);
             if (strlen(value_str) > remaining_width)
             {
                 char truncated_value[remaining_width + 1];
@@ -673,16 +663,17 @@ err:
     return;
 }
 
-void displayInformats(WINDOW *pad, Node* node, int *content_line)
+void displayInformats(WINDOW *pad, Node *node, int *content_line)
 {
     int line = 0;
 
     const int drm_fd = open_primary_drm_device();
 
+    drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
-        close(drm_fd);
         goto err;
     }
 
@@ -694,13 +685,23 @@ void displayInformats(WINDOW *pad, Node* node, int *content_line)
         goto err;
     }
 
+    // Extract the plane index from node->name
     int plane_index = -1;
-    char *endptr;
-
-    plane_index = strtol(node->name + 10, &endptr, 10);
-    if (*endptr != '\0' || plane_index < 0 || plane_index >= plane_resources->count_planes)
+    if (strncmp(node->name, "IN_FORMATS", 10) == 0)
     {
-        mvwprintw(pad, line++, 1, "Invalid Plane name: %s\n", node->name);
+        char *endptr;
+        plane_index = strtol(node->name + 10, &endptr, 10);
+        if (*endptr != '\0' || plane_index < 0 || plane_index >= plane_resources->count_planes)
+        {
+            mvwprintw(pad, line++, 1, "Invalid Plane Index: %s\n", node->name);
+            drmModeFreePlaneResources(plane_resources);
+            close(drm_fd);
+            goto err;
+        }
+    }
+    else
+    {
+        mvwprintw(pad, line++, 1, "Invalid format for node->name: %s\n", node->name);
         drmModeFreePlaneResources(plane_resources);
         close(drm_fd);
         goto err;
@@ -728,55 +729,136 @@ void displayInformats(WINDOW *pad, Node* node, int *content_line)
         goto err;
     }
 
-    uint32_t blob_id = 0;
+    mvwprintw(pad, line++, 1, "IN_FORMATS for Plane %u:", plane->plane_id);
+    line++;
+
     for (uint32_t i = 0; i < props->count_props; i++)
     {
         drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
-        if (prop && strcmp(prop->name, "IN_FORMATS") == 0)
+        if (prop)
         {
-            blob_id = props->prop_values[i];
-            drmModeFreeProperty(prop);
-            break;
+            uint64_t value = props->prop_values[i];
+
+            if (prop->flags & DRM_MODE_PROP_BLOB && strcmp(prop->name, "IN_FORMATS") == 0)
+            {
+                drmModePropertyBlobRes *blob = drmModeGetPropertyBlob(drm_fd, value);
+
+                if (!blob)
+                {
+                    perror("drmModeGetPropertyBlob");
+                    return NULL;
+                }
+
+                const struct drm_format_modifier_blob *data = blob->data;
+
+                uint32_t *fmts = (uint32_t *)((char *)data + data->formats_offset);
+                struct drm_format_modifier *mods = (struct drm_format_modifier *)((char *)data + data->modifiers_offset);
+
+                for (uint32_t j = 0; j < data->count_modifiers; j++)
+                {
+
+                    mvwprintw(pad, line++, 1, "Modifier %u: %s", j, get_basic_modifier_str(mods[j].modifier));
+                    mvwprintw(pad, line++, 3, "Formats: ");
+                    wattron(pad, A_DIM);
+                    for (uint32_t k = 0; k < data->count_formats; k++)
+                    {
+                        if (mods[j].formats & (1ULL << k))
+                        {
+                            mvwprintw(pad, line++, 5, "%s (0x%08x)", get_format_str(fmts[k]), fmts[k]);
+                        }
+                    }
+                    wattroff(pad, A_DIM);
+                }
+
+                drmModeFreePropertyBlob(blob);
+            }
         }
-        drmModeFreeProperty(prop);
     }
-
-    if (!blob_id)
-    {
-        mvwprintw(pad, line++, 1, "Plane %u does not have an IN_FORMATS property\n", plane->plane_id);
-        drmModeFreeObjectProperties(props);
-        drmModeFreePlane(plane);
-        drmModeFreePlaneResources(plane_resources);
-        close(drm_fd);
-        goto err;
-    }
-
-    drmModePropertyBlobPtr blob = drmModeGetPropertyBlob(drm_fd, blob_id);
-    if (!blob)
-    {
-        mvwprintw(pad, line++, 1, "Failed to get IN_FORMATS blob\n");
-        drmModeFreeObjectProperties(props);
-        drmModeFreePlane(plane);
-        drmModeFreePlaneResources(plane_resources);
-        close(drm_fd);
-        goto err;
-    }
-
-    uint32_t *data = (uint32_t *)blob->data;
-    uint32_t num_formats = data[0];
-    mvwprintw(pad, line++, 1, "Plane %u supports %u formats:", plane->plane_id, num_formats);
-
-    wattron(pad, A_DIM);
-    for (uint32_t i = 0; i < num_formats; i++)
-    {
-        mvwprintw(pad, line++, 3, "Format: %c%c%c%c",
-                  data[1 + i] & 0xFF, (data[1 + i] >> 8) & 0xFF,
-                  (data[1 + i] >> 16) & 0xFF, (data[1 + i] >> 24) & 0xFF);
-    }
-    wattroff(pad, A_DIM);
-
-    drmModeFreePropertyBlob(blob);
     drmModeFreeObjectProperties(props);
+    drmModeFreePlane(plane);
+    drmModeFreePlaneResources(plane_resources);
+    close(drm_fd);
+
+    mvwprintw(pad, ++line, 1, "Press 'e' to go back.");
+
+    *content_line = line;
+    return;
+
+err:
+    wrefresh(pad);
+    return;
+}
+
+void displayFormats(WINDOW *pad, Node *node, int *content_line)
+{
+    int line = 0;
+
+    const int drm_fd = open_primary_drm_device();
+
+    drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+
+    if (drm_fd < 0)
+    {
+        mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
+        goto err;
+    }
+
+    drmModePlaneRes *plane_resources = drmModeGetPlaneResources(drm_fd);
+    if (!plane_resources)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get DRM plane resources\n");
+        close(drm_fd);
+        goto err;
+    }
+
+    // Extract the plane index from node->name
+    int plane_index = -1;
+    if (strncmp(node->name, "FORMATS", 7) == 0)
+    {
+        char *endptr;
+        plane_index = strtol(node->name + 7, &endptr, 10);
+        if (*endptr != '\0' || plane_index < 0 || plane_index >= plane_resources->count_planes)
+        {
+            mvwprintw(pad, line++, 1, "Invalid Plane Index: %s\n", node->name);
+            drmModeFreePlaneResources(plane_resources);
+            close(drm_fd);
+            goto err;
+        }
+    }
+    else
+    {
+        mvwprintw(pad, line++, 1, "Invalid format for node->name: %s\n", node->name);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    drmModePlane *plane = drmModeGetPlane(drm_fd, plane_resources->planes[plane_index]);
+    if (!plane)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get Plane %d\n", plane_index);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    mvwprintw(pad, line++, 1, "Plane ID: %d", plane->plane_id);
+
+    line++;
+    mvwprintw(pad, line++, 1, "No. of Plane formats %u:", plane->count_formats);
+    line++;
+
+    if (plane->count_formats > 0)
+    {
+        wattron(pad, A_DIM);
+        for (uint32_t i = 0; i < plane->count_formats; i++)
+        {
+            mvwprintw(pad, line++, 3, "%s (0x%08x)", get_format_str(plane->formats[i]), plane->formats[i]);
+        }
+        line++;
+        wattroff(pad, A_DIM);
+    }
+
     drmModeFreePlane(plane);
     drmModeFreePlaneResources(plane_resources);
     close(drm_fd);
@@ -815,7 +897,7 @@ void gotoCrtc(WINDOW *pad, const char *page_name, int *content_line)
     int crtc_index = -1;
     char *endptr;
 
-    crtc_index = strtol(page_name + 4, &endptr, 10) - 1;
+    crtc_index = strtol(page_name + 4, &endptr, 10);
     if (*endptr != '\0' || crtc_index < 0 || crtc_index >= resources->count_crtcs)
     {
         mvwprintw(pad, line++, 1, "Invalid CRTC name: %s\n", page_name);
