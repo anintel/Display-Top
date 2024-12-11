@@ -49,7 +49,7 @@ char *find_drm_device(bool primary)
 int open_primary_drm_device()
 {
     char *device_path = find_drm_device(true);
-    int fd = open(device_path, O_RDWR | O_CLOEXEC);
+    int fd = open(device_path, O_RDWR);
     if (fd < 0)
     {
         perror("Failed to open DRM device");
@@ -86,6 +86,95 @@ char *get_connector_mode_name(const drmModeConnector *connector)
 
     drmModeModeInfo *mode = &connector->modes[0];
     return get_mode_info_string(mode);
+}
+
+const char *drmModeGetObjectTypeName(uint32_t object_type)
+{
+    switch (object_type)
+    {
+    case DRM_MODE_OBJECT_CRTC:
+        return "CRTC";
+    case DRM_MODE_OBJECT_CONNECTOR:
+        return "Connector";
+    case DRM_MODE_OBJECT_ENCODER:
+        return "Encoder";
+    case DRM_MODE_OBJECT_PLANE:
+        return "Plane";
+    case DRM_MODE_OBJECT_PROPERTY:
+        return "Property";
+    case DRM_MODE_OBJECT_FB:
+        return "Framebuffer";
+    default:
+        return "Unknown";
+    }
+}
+
+const char *get_connector_type_name(uint32_t connector_type)
+{
+    switch (connector_type)
+    {
+    case DRM_MODE_CONNECTOR_VGA:
+        return "VGA";
+    case DRM_MODE_CONNECTOR_DVII:
+        return "DVI-I";
+    case DRM_MODE_CONNECTOR_DVID:
+        return "DVI-D";
+    case DRM_MODE_CONNECTOR_DVIA:
+        return "DVI-A";
+    case DRM_MODE_CONNECTOR_Composite:
+        return "Composite";
+    case DRM_MODE_CONNECTOR_SVIDEO:
+        return "S-Video";
+    case DRM_MODE_CONNECTOR_LVDS:
+        return "LVDS";
+    case DRM_MODE_CONNECTOR_Component:
+        return "Component";
+    case DRM_MODE_CONNECTOR_9PinDIN:
+        return "9-pin DIN";
+    case DRM_MODE_CONNECTOR_DisplayPort:
+        return "DisplayPort";
+    case DRM_MODE_CONNECTOR_HDMIA:
+        return "HDMI-A";
+    case DRM_MODE_CONNECTOR_HDMIB:
+        return "HDMI-B";
+    case DRM_MODE_CONNECTOR_TV:
+        return "TV";
+    case DRM_MODE_CONNECTOR_eDP:
+        return "eDP";
+    case DRM_MODE_CONNECTOR_VIRTUAL:
+        return "Virtual";
+    case DRM_MODE_CONNECTOR_DSI:
+        return "DSI";
+    case DRM_MODE_CONNECTOR_DPI:
+        return "DPI";
+    default:
+        return "Unknown";
+    }
+}
+
+const char *get_encoder_type_name(uint32_t encoder_type)
+{
+    switch (encoder_type)
+    {
+    case DRM_MODE_ENCODER_NONE:
+        return "None";
+    case DRM_MODE_ENCODER_DAC:
+        return "DAC";
+    case DRM_MODE_ENCODER_TMDS:
+        return "TMDS";
+    case DRM_MODE_ENCODER_LVDS:
+        return "LVDS";
+    case DRM_MODE_ENCODER_TVDAC:
+        return "TVDAC";
+    case DRM_MODE_ENCODER_VIRTUAL:
+        return "Virtual";
+    case DRM_MODE_ENCODER_DSI:
+        return "DSI";
+    case DRM_MODE_ENCODER_DPMST:
+        return "DPMST";
+    default:
+        return "Unknown";
+    }
 }
 
 const char *get_plane_format_name(uint32_t format)

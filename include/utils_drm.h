@@ -22,6 +22,10 @@
 
 char *find_drm_device(bool primary);
 int open_primary_drm_device();
+
+const char *drmModeGetObjectTypeName(uint32_t object_type);
 const char *get_plane_format_name(uint32_t format);
+const char *get_connector_type_name(uint32_t connector_type);
+const char *get_encoder_type_name(uint32_t encoder_type);
 
 #endif

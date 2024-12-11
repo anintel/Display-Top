@@ -10,15 +10,15 @@
 
 #define DRM_DEVICE "/dev/dri/card0"
 
-void displaySummary(WINDOW *pad, int *content_line);
+void displaySummary(WINDOW *pad, const char*name, int *content_line);
 const char *get_connector_type_name(uint32_t connector_type);
 const char *get_encoder_type_name(uint32_t encoder_type);
 
-void displaySummary(WINDOW *pad, int *content_line)
+void displaySummary(WINDOW *pad, const char*name, int *content_line)
 {
     wclear(pad);
 
-    print_bold_text(pad, 0, 1, "DRM Summary");
+    print_bold_text(pad, 0, 1, name);
 
     int line = 2;
 
@@ -162,70 +162,3 @@ error:
     return;
 }
 
-const char *get_connector_type_name(uint32_t connector_type)
-{
-    switch (connector_type)
-    {
-    case DRM_MODE_CONNECTOR_VGA:
-        return "VGA";
-    case DRM_MODE_CONNECTOR_DVII:
-        return "DVI-I";
-    case DRM_MODE_CONNECTOR_DVID:
-        return "DVI-D";
-    case DRM_MODE_CONNECTOR_DVIA:
-        return "DVI-A";
-    case DRM_MODE_CONNECTOR_Composite:
-        return "Composite";
-    case DRM_MODE_CONNECTOR_SVIDEO:
-        return "S-Video";
-    case DRM_MODE_CONNECTOR_LVDS:
-        return "LVDS";
-    case DRM_MODE_CONNECTOR_Component:
-        return "Component";
-    case DRM_MODE_CONNECTOR_9PinDIN:
-        return "9-pin DIN";
-    case DRM_MODE_CONNECTOR_DisplayPort:
-        return "DisplayPort";
-    case DRM_MODE_CONNECTOR_HDMIA:
-        return "HDMI-A";
-    case DRM_MODE_CONNECTOR_HDMIB:
-        return "HDMI-B";
-    case DRM_MODE_CONNECTOR_TV:
-        return "TV";
-    case DRM_MODE_CONNECTOR_eDP:
-        return "eDP";
-    case DRM_MODE_CONNECTOR_VIRTUAL:
-        return "Virtual";
-    case DRM_MODE_CONNECTOR_DSI:
-        return "DSI";
-    case DRM_MODE_CONNECTOR_DPI:
-        return "DPI";
-    default:
-        return "Unknown";
-    }
-}
-
-const char *get_encoder_type_name(uint32_t encoder_type)
-{
-    switch (encoder_type)
-    {
-    case DRM_MODE_ENCODER_NONE:
-        return "None";
-    case DRM_MODE_ENCODER_DAC:
-        return "DAC";
-    case DRM_MODE_ENCODER_TMDS:
-        return "TMDS";
-    case DRM_MODE_ENCODER_LVDS:
-        return "LVDS";
-    case DRM_MODE_ENCODER_TVDAC:
-        return "TVDAC";
-    case DRM_MODE_ENCODER_VIRTUAL:
-        return "Virtual";
-    case DRM_MODE_ENCODER_DSI:
-        return "DSI";
-    case DRM_MODE_ENCODER_DPMST:
-        return "DPMST";
-    default:
-        return "Unknown";
-    }
-}

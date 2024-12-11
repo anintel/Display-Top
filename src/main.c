@@ -35,11 +35,9 @@ int main()
 
     int level = 0;
 
-    // uncomment these two functions for the app
-
     populateData();
     Node mmenu;
-    setString(mmenu.name, "NEW MAIN MENU", sizeof(mmenu.name));
+    setString(mmenu.name, "DISPLAY TOP", sizeof(mmenu.name));
     setString(mmenu.type, "menu", sizeof(mmenu.type));
     mmenu.displayFunction = displaySummary;
     mmenu.submenu = mainMenu;

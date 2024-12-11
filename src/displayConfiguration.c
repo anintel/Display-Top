@@ -2,6 +2,8 @@
 #include "utils.h"
 #include "utils_drm.h"
 
+const char *drmModeGetObjectTypeName(uint32_t object_type);
+
 void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
 {
     int line = 0;
@@ -22,11 +24,11 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
         goto err;
     }
 
-    int crtc_id = -1;
+    int crtc_index = -1;
     char *endptr;
 
-    crtc_id = strtol(page_name + 4, &endptr, 10) - 1;
-    if (*endptr != '\0' || crtc_id < 0 || crtc_id >= resources->count_crtcs)
+    crtc_index = strtol(page_name + 4, &endptr, 10) - 1;
+    if (*endptr != '\0' || crtc_index < 0 || crtc_index >= resources->count_crtcs)
     {
         mvwprintw(pad, line++, 1, "Invalid CRTC name: %s\n", page_name);
         drmModeFreeResources(resources);
@@ -34,10 +36,10 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
         goto err;
     }
 
-    drmModeCrtc *crtc = drmModeGetCrtc(drm_fd, resources->crtcs[crtc_id]);
+    drmModeCrtc *crtc = drmModeGetCrtc(drm_fd, resources->crtcs[crtc_index]);
     if (!crtc)
     {
-        mvwprintw(pad, line++, 1, "Failed to get CRTC %d\n", crtc_id);
+        mvwprintw(pad, line++, 1, "Failed to get CRTC %d\n", crtc_index);
         drmModeFreeResources(resources);
         close(drm_fd);
         goto err;
@@ -63,6 +65,7 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
     }
 
     mvwprintw(pad, line++, 1, "Gamma size: %u", crtc->gamma_size);
+
     drmModeObjectProperties *props = drmModeObjectGetProperties(drm_fd, crtc->crtc_id, DRM_MODE_OBJECT_CRTC);
     if (!props)
     {
@@ -73,51 +76,74 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
         goto err;
     }
 
-    line++;
     mvwprintw(pad, line++, 1, "Properties for CRTC %u:", crtc->crtc_id);
-    line++;
-
+    wattron(pad, A_DIM);
     for (uint32_t i = 0; i < props->count_props; i++)
     {
-        drmModePropertyRes *prop = drmModeGetProperty(drm_fd, props->props[i]);
+        drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
         if (prop)
         {
-            mvwprintw(pad, line++, 1, "Property %u: %s", prop->prop_id, prop->name);
-            wattron(pad, A_DIM);
-            if (prop->flags & DRM_MODE_PROP_IMMUTABLE)
-                wprintw(pad, " (Immutable) ");
+            uint64_t value = props->prop_values[i];
+            char value_str[256] = {0};
 
-            mvwprintw(pad, line++, 3, "blob Counts: %llu, Enum Counts: %d, Values Count: %llu", prop->count_blobs, prop->count_enums, prop->count_values);
-            if (prop->flags & DRM_MODE_PROP_RANGE)
+            if (prop->flags & DRM_MODE_PROP_BLOB)
             {
-                mvwprintw(pad, line++, 3, "Range: [%llu - %llu]", prop->values[0], prop->values[1]);
+                snprintf(value_str, sizeof(value_str), "blob = %lu", value);
             }
             else if (prop->flags & DRM_MODE_PROP_ENUM)
             {
+                snprintf(value_str, sizeof(value_str), "enum (");
                 for (int j = 0; j < prop->count_enums; j++)
                 {
-                    mvwprintw(pad, line++, 3, "Enum %d: %s = %llu", j, prop->enums[j].name, prop->enums[j].value);
+                    if (j > 0)
+                    {
+                        snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), ", ");
+                    }
+                    snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), "%s", prop->enums[j].name);
                 }
+                snprintf(value_str + strlen(value_str), sizeof(value_str) - strlen(value_str), ") = %s", prop->enums[value].name);
             }
-            else if (prop->flags & DRM_MODE_PROP_BLOB)
+            else if (prop->flags & DRM_MODE_PROP_RANGE)
             {
-                mvwprintw(pad, line++, 3, "Blob: %llu", props->prop_values[i]);
+                snprintf(value_str, sizeof(value_str), "range [%llu, %llu] = %lu",
+                         prop->values[0], prop->values[1], value);
             }
-            else if (prop->flags & DRM_MODE_PROP_BITMASK)
+            else if (prop->flags & DRM_MODE_PROP_OBJECT)
             {
-                mvwprintw(pad, line++, 3, "Bitmask: %llu", props->prop_values[i]);
+                snprintf(value_str, sizeof(value_str), "object %s = %lu",
+                         drmModeGetObjectTypeName(prop->values[0]), value);
             }
+            else
+            {
+                snprintf(value_str, sizeof(value_str), "%lu", value);
+            }
+
+            const char *immutability = (prop->flags & DRM_MODE_PROP_IMMUTABLE) ? " immutable" : "";
+            const char *atomicity = (prop->flags & DRM_MODE_PROP_ATOMIC) ? " atomic" : " ";
 
             wattroff(pad, A_DIM);
+            mvwprintw(pad, line++, 2, "%d. %s", i, prop->name);
+            wattron(pad, A_DIM);
+            wprintw(pad, "%s%s: ", immutability, atomicity);
+
+            int remaining_width = getmaxx(pad) - getcurx(pad) - 1;
+            if (strlen(value_str) > remaining_width)
+            {
+                char truncated_value[remaining_width + 1];
+                strncpy(truncated_value, value_str, remaining_width);
+                truncated_value[remaining_width] = '\0';
+                wprintw(pad, "%s", truncated_value);
+                mvwprintw(pad, line++, 2, "%s", value_str + remaining_width);
+            }
+            else
+            {
+                wprintw(pad, "%s", value_str);
+            }
+
             drmModeFreeProperty(prop);
         }
-        else
-        {
-            mvwprintw(pad, line++, 1, "  Property %u: (failed to get property details)", props->props[i]);
-        }
     }
-
-
+    wattroff(pad, A_DIM);
 
     drmModeFreeObjectProperties(props);
 
@@ -127,32 +153,12 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
     drmModeFreeCrtc(crtc);
     drmModeFreeResources(resources);
     close(drm_fd);
+    return;
 
 err:
     wrefresh(pad);
     wgetch(pad);
     return;
-}
-
-const char *drmModeGetObjectTypeName(uint32_t object_type)
-{
-    switch (object_type)
-    {
-    case DRM_MODE_OBJECT_CRTC:
-        return "CRTC";
-    case DRM_MODE_OBJECT_CONNECTOR:
-        return "Connector";
-    case DRM_MODE_OBJECT_ENCODER:
-        return "Encoder";
-    case DRM_MODE_OBJECT_PLANE:
-        return "Plane";
-    case DRM_MODE_OBJECT_PROPERTY:
-        return "Property";
-    case DRM_MODE_OBJECT_FB:
-        return "Framebuffer";
-    default:
-        return "Unknown";
-    }
 }
 
 void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
@@ -351,6 +357,7 @@ void displayConnector(WINDOW *pad, const char *page_name, int *content_line)
     drmModeFreeConnector(connector);
     drmModeFreeResources(resources);
     close(drm_fd);
+    return;
 
 err:
     wrefresh(pad);
@@ -419,6 +426,8 @@ void displayEncoder(WINDOW *pad, const char *page_name, int *content_line)
     drmModeFreeEncoder(encoder);
     drmModeFreeResources(resources);
     close(drm_fd);
+    return;
+
 
 err:
     wrefresh(pad);
@@ -482,6 +491,7 @@ void displayFramebuffer(WINDOW *pad, const char *page_name, int *content_line)
     drmModeFreeFB(fb);
     drmModeFreeResources(resources);
     close(drm_fd);
+    return;
 
 err:
     wrefresh(pad);
@@ -489,7 +499,7 @@ err:
     return;
 }
 
-void displayPlane(WINDOW *pad, const char *page_name, int *content_line)
+void displayPlane(WINDOW *pad, Node* node, int *content_line)
 {
     int line = 0;
 
@@ -512,22 +522,22 @@ void displayPlane(WINDOW *pad, const char *page_name, int *content_line)
         goto err;
     }
 
-    int plane_id = -1;
+    int plane_index = -1;
     char *endptr;
 
-    plane_id = strtol(page_name + 5, &endptr, 10) - 1;
-    if (*endptr != '\0' || plane_id < 0 || plane_id >= plane_resources->count_planes)
+    plane_index = strtol(node->name + 5, &endptr, 10);
+    if (*endptr != '\0' || plane_index < 0 || plane_index >= plane_resources->count_planes)
     {
-        mvwprintw(pad, line++, 1, "Invalid Plane name: %s\n", page_name);
+        mvwprintw(pad, line++, 1, "Invalid Plane name: %s\n", node->name);
         drmModeFreePlaneResources(plane_resources);
         close(drm_fd);
         goto err;
     }
 
-    drmModePlane *plane = drmModeGetPlane(drm_fd, plane_resources->planes[plane_id]);
+    drmModePlane *plane = drmModeGetPlane(drm_fd, plane_resources->planes[plane_index]);
     if (!plane)
     {
-        mvwprintw(pad, line++, 1, "Failed to get Plane %d\n", plane_id);
+        mvwprintw(pad, line++, 1, "Failed to get Plane %d\n", plane_index);
         drmModeFreePlaneResources(plane_resources);
         close(drm_fd);
         goto err;
@@ -655,6 +665,203 @@ void displayPlane(WINDOW *pad, const char *page_name, int *content_line)
     drmModeFreePlane(plane);
     drmModeFreePlaneResources(plane_resources);
     close(drm_fd);
+    return;
+
+err:
+    wrefresh(pad);
+    wgetch(pad);
+    return;
+}
+
+void displayInformats(WINDOW *pad, Node* node, int *content_line)
+{
+    int line = 0;
+
+    const int drm_fd = open_primary_drm_device();
+
+    if (drm_fd < 0)
+    {
+        mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
+        close(drm_fd);
+        goto err;
+    }
+
+    drmModePlaneRes *plane_resources = drmModeGetPlaneResources(drm_fd);
+    if (!plane_resources)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get DRM plane resources\n");
+        close(drm_fd);
+        goto err;
+    }
+
+    int plane_index = -1;
+    char *endptr;
+
+    plane_index = strtol(node->name + 10, &endptr, 10);
+    if (*endptr != '\0' || plane_index < 0 || plane_index >= plane_resources->count_planes)
+    {
+        mvwprintw(pad, line++, 1, "Invalid Plane name: %s\n", node->name);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    drmModePlane *plane = drmModeGetPlane(drm_fd, plane_resources->planes[plane_index]);
+    if (!plane)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get Plane %d\n", plane_index);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    mvwprintw(pad, line++, 1, "Plane Index: %d", plane_index);
+    mvwprintw(pad, line++, 1, "Plane ID: %d", plane->plane_id);
+
+    drmModeObjectProperties *props = drmModeObjectGetProperties(drm_fd, plane->plane_id, DRM_MODE_OBJECT_PLANE);
+    if (!props)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get properties for Plane %u\n", plane->plane_id);
+        drmModeFreePlane(plane);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    uint32_t blob_id = 0;
+    for (uint32_t i = 0; i < props->count_props; i++)
+    {
+        drmModePropertyPtr prop = drmModeGetProperty(drm_fd, props->props[i]);
+        if (prop && strcmp(prop->name, "IN_FORMATS") == 0)
+        {
+            blob_id = props->prop_values[i];
+            drmModeFreeProperty(prop);
+            break;
+        }
+        drmModeFreeProperty(prop);
+    }
+
+    if (!blob_id)
+    {
+        mvwprintw(pad, line++, 1, "Plane %u does not have an IN_FORMATS property\n", plane->plane_id);
+        drmModeFreeObjectProperties(props);
+        drmModeFreePlane(plane);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    drmModePropertyBlobPtr blob = drmModeGetPropertyBlob(drm_fd, blob_id);
+    if (!blob)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get IN_FORMATS blob\n");
+        drmModeFreeObjectProperties(props);
+        drmModeFreePlane(plane);
+        drmModeFreePlaneResources(plane_resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    uint32_t *data = (uint32_t *)blob->data;
+    uint32_t num_formats = data[0];
+    mvwprintw(pad, line++, 1, "Plane %u supports %u formats:", plane->plane_id, num_formats);
+
+    wattron(pad, A_DIM);
+    for (uint32_t i = 0; i < num_formats; i++)
+    {
+        mvwprintw(pad, line++, 3, "Format: %c%c%c%c",
+                  data[1 + i] & 0xFF, (data[1 + i] >> 8) & 0xFF,
+                  (data[1 + i] >> 16) & 0xFF, (data[1 + i] >> 24) & 0xFF);
+    }
+    wattroff(pad, A_DIM);
+
+    drmModeFreePropertyBlob(blob);
+    drmModeFreeObjectProperties(props);
+    drmModeFreePlane(plane);
+    drmModeFreePlaneResources(plane_resources);
+    close(drm_fd);
+
+    mvwprintw(pad, ++line, 1, "Press 'e' to go back.");
+
+    *content_line = line;
+    return;
+
+err:
+    wrefresh(pad);
+    return;
+}
+
+void gotoCrtc(WINDOW *pad, const char *page_name, int *content_line)
+{
+    int line = 0;
+
+    const int drm_fd = open_primary_drm_device();
+
+    if (drm_fd < 0)
+    {
+        mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
+        close(drm_fd);
+        goto err;
+    }
+
+    drmModeRes *resources = drmModeGetResources(drm_fd);
+    if (!resources)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get DRM resources\n");
+        close(drm_fd);
+        goto err;
+    }
+
+    int crtc_index = -1;
+    char *endptr;
+
+    crtc_index = strtol(page_name + 4, &endptr, 10) - 1;
+    if (*endptr != '\0' || crtc_index < 0 || crtc_index >= resources->count_crtcs)
+    {
+        mvwprintw(pad, line++, 1, "Invalid CRTC name: %s\n", page_name);
+        drmModeFreeResources(resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    drmModeCrtc *crtc = drmModeGetCrtc(drm_fd, resources->crtcs[crtc_index]);
+    if (!crtc)
+    {
+        mvwprintw(pad, line++, 1, "Failed to get CRTC %d\n", crtc_index);
+        drmModeFreeResources(resources);
+        close(drm_fd);
+        goto err;
+    }
+
+    mvwprintw(pad, line++, 1, "CRTC ID: %d", crtc->crtc_id);
+    mvwprintw(pad, line++, 1, "Framebuffer ID: %d", crtc->buffer_id);
+    mvwprintw(pad, line++, 1, "Position(X, Y): (%d, %d)", crtc->x, crtc->y);
+    mvwprintw(pad, line++, 1, "Mode: ");
+    if (crtc->mode_valid)
+        print_green_text(pad, -1, -1, "VALID");
+    else
+        print_red_text(pad, -1, -1, "INVALID");
+
+    if (crtc->mode_valid)
+    {
+        drmModeModeInfo *mode = &crtc->mode;
+        mvwprintw(pad, line++, 3, "Name: %s", mode->name);
+        mvwprintw(pad, line++, 3, "Resolution: %dx%d", mode->hdisplay, mode->vdisplay);
+        mvwprintw(pad, line++, 3, "Refresh Rate: %.2f Hz", mode->clock / (float)(mode->htotal * mode->vtotal));
+        mvwprintw(pad, line++, 3, "Type: 0x%x", mode->type);
+        mvwprintw(pad, line++, 3, "Flags: 0x%x", mode->flags);
+    }
+
+    mvwprintw(pad, line++, 1, "Gamma size: %u", crtc->gamma_size);
+
+    drmModeFreeCrtc(crtc);
+    drmModeFreeResources(resources);
+    close(drm_fd);
+
+    mvwprintw(pad, ++line, 1, "Press 'e' to go back.");
+
+    *content_line = line;
+    return;
 
 err:
     wrefresh(pad);

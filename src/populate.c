@@ -15,7 +15,6 @@ void populateData()
     initializeMainMenu();
 }
 
-
 int initializeCrtcPages()
 {
     int fd = open(DRM_DEVICE, O_RDWR);
@@ -230,12 +229,38 @@ int initializePlanes()
     for (int i = 0; i < planeCount; ++i)
     {
         char planeName[10];
-        snprintf(planeName, sizeof(planeName), "Plane%d", i + 1);
+        snprintf(planeName, sizeof(planeName), "Plane%d", i);
         setString(planePages[i].name, planeName, sizeof(planePages[i].name));
-        setString(planePages[i].type, "page", sizeof(planePages[i].type));
+        setString(planePages[i].type, "menu", sizeof(planePages[i].type));
         planePages[i].displayFunction = displayPlane;
         planePages[i].submenu = NULL;
         planePages[i].submenuSize = 0;
+        
+        planePages[i].submenu = (Node *)malloc(2 * sizeof(Node));
+        if (!planePages[i].submenu)
+        {
+            perror("malloc");
+            drmModeFreePlaneResources(resources);
+            close(fd);
+            return 0;
+        }
+
+        char informatsName[15];
+        snprintf(informatsName, sizeof(informatsName), "IN_FORMATS%d", i);
+        setString(planePages[i].submenu[0].name, informatsName, sizeof(planePages[i].submenu[0].name));
+        setString(planePages[i].submenu[0].type, "page", sizeof(planePages[i].submenu[0].type));
+        planePages[i].submenu[0].displayFunction = displayInformats;
+        planePages[i].submenu[0].submenu = NULL;
+        planePages[i].submenu[0].submenuSize = 0;
+
+        setString(planePages[i].submenu[1].name, "Goto CRTC", sizeof(planePages[i].submenu[1].name));
+        setString(planePages[i].submenu[1].type, "page", sizeof(planePages[i].submenu[1].type));
+        planePages[i].submenu[1].displayFunction = gotoCrtc;
+        planePages[i].submenu[1].submenu = NULL;
+        planePages[i].submenu[1].submenuSize = 0;
+
+        planePages[i].submenuSize = 2;
+
     }
 
     drmModeFreePlaneResources(resources);
@@ -330,7 +355,7 @@ int initializeDisplayConfigMenu()
 
     setString(displayConfigMenu[index].name, "Other Display Info", sizeof(displayConfigMenu[index].name));
     setString(displayConfigMenu[index].type, "page", sizeof(displayConfigMenu[index].type));
-    displayConfigMenu[index].displayFunction = displayDebugfsFile;
+    displayConfigMenu[index].displayFunction = NULL;
     displayConfigMenu[index].submenu = NULL;
     displayConfigMenu[index].submenuSize = 0;
     index++;
