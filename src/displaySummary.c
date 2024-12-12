@@ -20,7 +20,7 @@ void displaySummary(WINDOW *pad, const char *name, int *content_line)
 
     int line = 0;
 
-    const int drm_fd = open(DRM_DEVICE, O_RDWR);
+    const int drm_fd = open_primary_drm_device();
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 2, "Failed to open DRM Device!\n");

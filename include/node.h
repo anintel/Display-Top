@@ -3,6 +3,30 @@
 
 #include <ncurses.h>
 
+/**
+ * @struct Node
+ * @brief Represents a node in a tree structure.
+ * 
+ * This structure is used to represent a node in a tree, where each node can have a name,
+ * a display function, a parent node, and an array of child nodes.
+ * 
+ * @var Node::name
+ * A character array to store the name of the node. The name can be up to 49 characters long,
+ * with the 50th character reserved for the null terminator.
+ * 
+ * @var Node::displayFunction
+ * A pointer to a function that takes a WINDOW pointer and a variable number of arguments,
+ * and returns an integer. This function is used to display the node.
+ * 
+ * @var Node::parent
+ * A pointer to the parent node. If the node is the root, this will be NULL.
+ * 
+ * @var Node::children
+ * A pointer to an array of child nodes. If the node has no children, this will be NULL.
+ * 
+ * @var Node::childrenSize
+ * An integer representing the number of children the node has.
+ */
 typedef struct Node {
     char name[50];
     int (*displayFunction)(WINDOW*, ...); 
@@ -55,7 +79,6 @@ void freeTree(Node* root);
  * 
  * @param node A pointer to the Node whose path is to be printed.
  */
-
 void printPath(Node* node);
 
 #endif 

@@ -71,8 +71,12 @@ void doublePage(WINDOW *win, Node *node)
         {
             pad_height = count;
         }
+        if (count < display_pad_height)
+        {
+            display_pad_height = count + 1;
+            mpy = dpy + display_pad_height + 2;
+        }
         prefresh(display_pad, display_pad_pos, 0, dpy, 1, 4 + display_pad_height, pad_width);
-        mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
     }
 
     if (node->childrenSize > 0)
@@ -110,7 +114,7 @@ void doublePage(WINDOW *win, Node *node)
             if (node->displayFunction != NULL)
             {
                 display_pad_height -= node->childrenSize;
-                mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
+
                 prefresh(display_pad, display_pad_pos, 0, 4, 1, 4 + display_pad_height, pad_width);
             }
             if (node->childrenSize > 0)
@@ -197,7 +201,6 @@ void doublePage(WINDOW *win, Node *node)
                 box(win, 0, 0);
                 if (node->displayFunction != NULL)
                 {
-                    mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
                 }
                 wrefresh(win);
             }
@@ -300,6 +303,11 @@ void displayWin(WINDOW *win, Node *node)
                 {
                     pad_height = count;
                 }
+                if (count < display_pad_height)
+                {
+                    display_pad_height = count + 1;
+                    mpy = dpy + display_pad_height + 3;
+                }
                 prefresh(display_pad, display_pad_pos, 0, dpy, 1, 4 + display_pad_height, pad_width);
                 mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
             }
@@ -375,7 +383,7 @@ void displayWin(WINDOW *win, Node *node)
                 }
                 else
                 {
-                    print_bold_text(win, mpy, win_width - 6, "***");
+                    print_bold_text(win, mpy , win_width - 6, "***");
                 }
             }
 
@@ -423,6 +431,7 @@ void displayWin(WINDOW *win, Node *node)
                     head = head->parent;
                     focus_on_top = false;
                     highlight = 0;
+                    display_pad_pos = 0;
                     running = 0;
                 }
                 else
@@ -439,6 +448,7 @@ void displayWin(WINDOW *win, Node *node)
                         head = &head->children[highlight];
                         focus_on_top = false;
                         highlight = 0;
+                        display_pad_pos = 0;
                         running = 0;
                     }
                     else

@@ -9,6 +9,8 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
     int line = 0;
     const int drm_fd = open_primary_drm_device();
 
+    drmSetClientCap(drm_fd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
+
     if (drm_fd < 0)
     {
         mvwprintw(pad, line++, 1, "Failed to open DRM Device!\n");
@@ -76,7 +78,42 @@ void displayCrtc(WINDOW *pad, const char *page_name, int *content_line)
         goto err;
     }
 
+    drmModePlaneRes *plane_resources = drmModeGetPlaneResources(drm_fd);
+    if (!plane_resources)
+    {
+        mvwprintw(pad, line++, 3, "Failed to get plane resources");
+        return;
+    }
+
+    line++;
+    mvwprintw(pad, line++, 1, "Possible Planes for CRTC %d:", crtc->crtc_id);
+    line++;
+
+    wattron(pad, A_DIM);
+    for (int i = 0; i < plane_resources->count_planes; i++)
+    {
+        drmModePlane *plane = drmModeGetPlane(drm_fd, plane_resources->planes[i]);
+        if (plane)
+        {
+            if (plane->possible_crtcs & (1 << crtc_index))
+            {
+                mvwprintw(pad, line++, 3, "Plane %d: ID %d, %s",
+                          i, plane->plane_id, plane->crtc_id ? "Active" : "Inactive");
+            }
+            drmModeFreePlane(plane);
+        }
+        else
+        {
+            mvwprintw(pad, line++, 3, "Plane %d: Failed to get plane", i);
+        }
+    }
+    wattroff(pad, A_DIM);
+    drmModeFreePlaneResources(plane_resources);
+
+    line++;
     mvwprintw(pad, line++, 1, "Properties for CRTC %u:", crtc->crtc_id);
+    line++;
+
     wattron(pad, A_DIM);
     for (uint32_t i = 0; i < props->count_props; i++)
     {

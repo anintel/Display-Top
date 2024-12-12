@@ -6,6 +6,7 @@
 
 #include "data.h"
 
+#include "dpcd.h"
 
 
 
@@ -32,8 +33,10 @@ int main()
     // doublePage(stdscr, root);
     displayWin(stdscr, root);
 
+    // AC_DPCD();
+
     // Assuming root is the root node of your tree
-    // traverseAndPrint(root, 0);
+    // traverseAndPrint(crtcPages, 0);
     // wgetch(stdscr);
     endwin();
 

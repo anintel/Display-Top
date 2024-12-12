@@ -4,6 +4,7 @@
 #include "node.h"
 #include "data.h"
 #include "utils.h"
+#include "utils_drm.h"
 #include "display.h"
 
 void populateData();

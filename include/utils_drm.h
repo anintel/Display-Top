@@ -17,14 +17,20 @@
 #include <drm/drm_fourcc.h>
 #include <xf86drmMode.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <drm/drm.h>
+
 #define DRM_DIR "/dev/dri/"
 #define DRM_PRIMARY_PREFIX "card"
 #define DRM_RENDER_PREFIX "renderD"
 
 char *find_drm_device(bool primary);
 int open_primary_drm_device();
-
-void print_modifier(uint64_t mod);
 
 const char *drmModeGetObjectTypeName(uint32_t object_type);
 const char *get_format_str(uint32_t format);
