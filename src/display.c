@@ -4,251 +4,30 @@
 
 #define DRM_DEVICE "/dev/dri/card0"
 
-void doublePage(WINDOW *win, Node *node)
-{
-
-    if (node->displayFunction == NULL && node->childrenSize == 0)
-    {
-        mvwprintw(win, 4, 2, "It's so Empty at %s :(", node->name);
-        mvwprintw(win, 6, 2, "Press 'e' to go back.");
-        wrefresh(win);
-
-        int ch;
-        while ((ch = wgetch(win)) != 'e')
-        {
-        }
-        return;
-    }
-
-    int win_height, win_width;
-    bool focus_on_top = false;
-
-    getmaxyx(win, win_height, win_width);
-    wclear(win);
-    wbkgd(win, COLOR_PAIR(2));
-    box(win, 0, 0);
-
-    int mpy = 0;
-    int dpy = 0;
-    if (node->displayFunction != NULL && node->childrenSize > 0)
-    {
-        mpy = win_height - 1 - node->childrenSize;
-        dpy = 4;
-    }
-    else if (node->displayFunction != NULL)
-    {
-        focus_on_top = true;
-        dpy = 4;
-        mpy = 4;
-    }
-    else if (node->childrenSize > 0)
-    {
-        mpy = 3;
-    }
-
-    int pad_height = 100;
-    int pad_width = getmaxx(win) - 2;
-
-    int display_pad_height = win_height - 8;
-    int display_pad_pos = 0;
-    int highlight = 0;
-
-    WINDOW *display_pad = NULL;
-    WINDOW *menu_pad = NULL;
-
-    move(1, 2);
-    printPath(node);
-    mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
-    wrefresh(win);
-
-    if (node->displayFunction != NULL)
-    {
-        display_pad_height -= node->childrenSize;
-        display_pad = newpad(pad_height, pad_width);
-        int count = pad_height;
-        node->displayFunction(display_pad, node->name, &count);
-        if (count < pad_height)
-        {
-            pad_height = count;
-        }
-        if (count < display_pad_height)
-        {
-            display_pad_height = count + 1;
-            mpy = dpy + display_pad_height + 2;
-        }
-        prefresh(display_pad, display_pad_pos, 0, dpy, 1, 4 + display_pad_height, pad_width);
-    }
-
-    if (node->childrenSize > 0)
-    {
-        menu_pad = newpad(node->childrenSize, pad_width);
-        prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, pad_width);
-    }
-
-    while (1)
-    {
-        move(1, 2);
-        printPath(node);
-        if (check_size_change(win, &win_height, &win_width) == 1)
-        {
-            wclear(win);
-            box(win, 0, 0);
-            mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
-            wrefresh(win);
-
-            if (node->displayFunction != NULL && node->childrenSize > 0)
-            {
-                mpy = win_height - 1 - node->childrenSize;
-                dpy = 4;
-            }
-            else if (node->displayFunction != NULL)
-            {
-                dpy = 4;
-            }
-            else if (node->childrenSize > 0)
-            {
-                mpy = 3;
-            }
-
-            display_pad_height = win_height - 8;
-            if (node->displayFunction != NULL)
-            {
-                display_pad_height -= node->childrenSize;
-
-                prefresh(display_pad, display_pad_pos, 0, 4, 1, 4 + display_pad_height, pad_width);
-            }
-            if (node->childrenSize > 0)
-            {
-                prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, pad_width);
-            }
-        }
-
-        if (display_pad != NULL)
-        {
-            if (display_pad_pos > 0)
-                print_bold_text(win, 3, 1, "...");
-            else
-                mvwprintw(win, 3, 1, "   ");
-
-            if (display_pad_pos < pad_height - display_pad_height)
-                print_bold_text(win, dpy + display_pad_height + 1, 1, "...");
-            else
-                mvwprintw(win, dpy + display_pad_height + 1, 1, "   ");
-        }
-        if (node->childrenSize > 0 && node->displayFunction != NULL)
-        {
-            if (focus_on_top)
-            {
-                print_bold_text(win, dpy, win_width - 6, "***");
-            }
-            else
-            {
-                print_bold_text(win, mpy, win_width - 6, "***");
-            }
-        }
-
-        if (node->childrenSize > 0)
-        {
-            for (int i = 0; i < node->childrenSize; ++i)
-            {
-                if (highlight == i && !focus_on_top)
-                {
-                    wattron(menu_pad, A_REVERSE);
-                }
-                mvwprintw(menu_pad, i, 1, node->children[i].name);
-                wattroff(menu_pad, A_REVERSE);
-            }
-            prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, pad_width);
-        }
-
-        if (node->displayFunction != NULL)
-        {
-            prefresh(display_pad, display_pad_pos, 0, 4, 1, 4 + display_pad_height, pad_width);
-        }
-
-        int ch = wgetch(win);
-        switch (ch)
-        {
-        case KEY_UP:
-            if (focus_on_top && display_pad_pos > 0)
-            {
-                display_pad_pos--;
-            }
-            else if (!focus_on_top)
-            {
-                highlight = (highlight == 0) ? node->childrenSize - 1 : highlight - 1;
-            }
-            break;
-
-        case KEY_DOWN:
-            if (focus_on_top && display_pad_pos < pad_height - display_pad_height)
-            {
-                display_pad_pos++;
-            }
-            else if (!focus_on_top)
-            {
-                highlight = (highlight == node->childrenSize - 1) ? 0 : highlight + 1;
-            }
-            break;
-        case 'e':
-            return;
-        case '\n':
-            if (!focus_on_top)
-            {
-                doublePage(win, &node->children[highlight]);
-
-                wclear(win);
-                box(win, 0, 0);
-                if (node->displayFunction != NULL)
-                {
-                }
-                wrefresh(win);
-            }
-            break;
-
-        case '\t':
-            if (node->childrenSize > 0)
-            {
-                focus_on_top = !focus_on_top;
-            }
-            break;
-        }
-    }
-
-    if (display_pad != NULL)
-    {
-        delwin(display_pad);
-    }
-    if (menu_pad != NULL)
-    {
-        delwin(menu_pad);
-    }
-}
-
 void displayWin(WINDOW *win, Node *node)
 {
     Node *head = node;
     int highlight = 0;
+    int running;
     bool focus_on_top = false;
+    bool start = true;
 
     int win_height, win_width;
-    int pad_height = 100;
-    int pad_width = getmaxx(win) - 2;
 
-    getmaxyx(win, win_height, win_width);
-    int display_pad_height = win_height - 8;
-    int display_pad_pos = 0;
+    int pad_height;
+    int common_pad_width;
+    int display_pad_height;
+    int menu_pad_height;
+    int display_pad_pos;
 
-    int menu_pad_height = 0;
+    int mpy;
+    int dpy;
+    int count = 100;
 
     WINDOW *display_pad = NULL;
     WINDOW *menu_pad = NULL;
 
-    int mpy = 0;
-    int dpy = 0;
-
     int ch;
-    int running = 1;
 
     while (1)
     {
@@ -258,105 +37,90 @@ void displayWin(WINDOW *win, Node *node)
         move(1, 2);
         printPath(head);
         mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
-        wrefresh(win);
 
+        mpy = 4;
+        dpy = 4;
         running = 1;
         pad_height = 100;
+        display_pad_pos = 0;
 
         if (head->displayFunction == NULL && head->childrenSize == 0)
         {
             mvwprintw(win, 4, 2, "It's so Empty at %s :(", head->name);
-            mvwprintw(win, 6, 2, "childsize %d", head->childrenSize);
             mvwprintw(win, 8, 2, "Press 'e' to go back.");
             wrefresh(win);
         }
-        else
-        {
-            getmaxyx(win, win_height, win_width);
 
-            if (head->displayFunction != NULL && head->childrenSize > 0)
-            {
-                mpy = win_height - 1 - head->childrenSize;
-                dpy = 4;
-                menu_pad_height = head->childrenSize;
-            }
-            else if (head->displayFunction != NULL)
-            {
-                focus_on_top = true;
-                dpy = 4;
-                mpy = 3;
-            }
-            else if (head->childrenSize > 0)
-            {
-                menu_pad_height = head->childrenSize;
-                mpy = 3;
-            }
-
-            if (head->displayFunction != NULL)
-            {
-                display_pad_height = win_height - 8;
-                display_pad_height -= menu_pad_height;
-                display_pad = newpad(pad_height, pad_width);
-                int count = 100;
-                head->displayFunction(display_pad, head->name, &count);
-                if (count < pad_height)
-                {
-                    pad_height = count;
-                }
-                if (count < display_pad_height)
-                {
-                    display_pad_height = count + 1;
-                    mpy = dpy + display_pad_height + 3;
-                }
-                prefresh(display_pad, display_pad_pos, 0, dpy, 1, 4 + display_pad_height, pad_width);
-                mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
-            }
-
-            if (head->childrenSize > 0)
-            {
-                menu_pad = newpad(head->childrenSize, pad_width);
-                prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, pad_width);
-            }
-        }
+        getmaxyx(win, win_height, win_width);
+        common_pad_width = win_width - 2;
 
         while (running)
         {
-            if (check_size_change(win, &win_height, &win_width) == 1)
+            if (check_size_change(win, &win_height, &win_width) == 1 || start)
             {
+                start = false;
                 wclear(win);
                 box(win, 0, 0);
-                print_bold_text(win, 1, 1, head->name);
+                move(1, 2);
+                wattron(win, A_BOLD);
+                printPath(head);
+                wattroff(win, A_BOLD);
                 mvwhline(win, 2, 1, ACS_HLINE, getmaxx(win) - 2);
                 wrefresh(win);
 
+                // when we have both display and menu
                 if (head->displayFunction != NULL && head->childrenSize > 0)
                 {
+                    menu_pad_height = head->childrenSize + 2;
                     mpy = win_height - 1 - head->childrenSize;
-                    dpy = 4;
-                    menu_pad_height = head->childrenSize;
-                }
-                else if (head->displayFunction != NULL)
-                {
-                    focus_on_top = true;
-                    dpy = 4;
-                    mpy = 3;
-                }
-                else if (head->childrenSize > 0)
-                {
-                    menu_pad_height = head->childrenSize;
-                    mpy = 3;
                 }
 
                 if (head->displayFunction != NULL)
                 {
-                    display_pad_height = win_height - 8;
+                    focus_on_top = true;
+
+                    // set the height to take as much as it can
+                    display_pad_height = win_height - 6;
                     display_pad_height -= menu_pad_height;
-                    mvwhline(win, mpy - 1, 1, ACS_HLINE, pad_width);
-                    prefresh(display_pad, display_pad_pos, 0, 4, 1, 4 + display_pad_height, pad_width);
+                    if (display_pad != NULL)
+                    {
+                        delwin(display_pad);
+                        display_pad = NULL;
+                    }
+                    display_pad = newpad(pad_height, common_pad_width);
+                    count = pad_height;
+
+                    // add content to the display pad
+                    head->displayFunction(display_pad, head->name, &count);
+
+                    // adjust display pad size to fit the content only
+                    if (count < pad_height)
+                        pad_height = count;
+                    if (count < display_pad_height)
+                    {
+                        display_pad_height = pad_height + 1;
+                        mpy = dpy + display_pad_height + 3;
+                    }
+
+                    // update & refresh the pad
+                    prefresh(display_pad, display_pad_pos, 0, dpy, 1, 4 + display_pad_height, common_pad_width);
                 }
+
                 if (head->childrenSize > 0)
                 {
-                    prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, pad_width);
+                    menu_pad_height = head->childrenSize;
+                    focus_on_top = false;
+                    if (menu_pad != NULL)
+                    {
+                        delwin(menu_pad);
+                        menu_pad = NULL;
+                    }
+
+                    if (head->displayFunction != NULL)
+                        mvwhline(win, mpy - 1, 1, ACS_HLINE, common_pad_width);
+
+                    menu_pad = newpad(head->childrenSize, common_pad_width);
+                    prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, common_pad_width);
                 }
             }
 
@@ -372,7 +136,7 @@ void displayWin(WINDOW *win, Node *node)
                 else
                     mvwprintw(win, dpy + display_pad_height + 1, 1, "   ");
 
-                prefresh(display_pad, display_pad_pos, 0, 4, 1, 4 + display_pad_height, pad_width);
+                prefresh(display_pad, display_pad_pos, 0, 4, 1, 4 + display_pad_height, common_pad_width);
             }
 
             if (head->childrenSize > 0 && head->displayFunction != NULL)
@@ -383,7 +147,7 @@ void displayWin(WINDOW *win, Node *node)
                 }
                 else
                 {
-                    print_bold_text(win, mpy , win_width - 6, "***");
+                    print_bold_text(win, mpy, win_width - 6, "***");
                 }
             }
 
@@ -398,7 +162,7 @@ void displayWin(WINDOW *win, Node *node)
                     mvwprintw(menu_pad, i, 1, head->children[i].name);
                     wattroff(menu_pad, A_REVERSE);
                 }
-                prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, pad_width);
+                prefresh(menu_pad, 0, 0, mpy, 1, win_height - 1, common_pad_width);
             }
 
             ch = wgetch(win);
@@ -450,6 +214,7 @@ void displayWin(WINDOW *win, Node *node)
                         highlight = 0;
                         display_pad_pos = 0;
                         running = 0;
+                        start = true;
                     }
                     else
                     {
@@ -466,6 +231,8 @@ void displayWin(WINDOW *win, Node *node)
                 break;
             }
         }
+
+        start = true;
 
         if (display_pad != NULL)
         {

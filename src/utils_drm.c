@@ -41,6 +41,7 @@ char *find_drm_device(bool primary)
     if (!device_path)
     {
         fprintf(stderr, "No DRM %s devices found in %s\n", primary ? "primary (card*)" : "render (renderD*)", DRM_DIR);
+		return NULL;
     }
 
     return device_path;

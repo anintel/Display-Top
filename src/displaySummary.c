@@ -1,24 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
-#include <ncurses.h>
-
 #include "display.h"
 #include "utils_drm.h"
 
-#define DRM_DEVICE "/dev/dri/card0"
-
-void displaySummary(WINDOW *pad, const char *name, int *content_line);
-const char *get_connector_type_name(uint32_t connector_type);
-const char *get_encoder_type_name(uint32_t encoder_type);
 void displaySummary(WINDOW *pad, const char *name, int *content_line)
 {
     wclear(pad);
 
     int line = 0;
+
+    wattron(pad, A_BOLD);
+    mvwprintw(pad, line++, 1, "Fetching details for card: %s", find_drm_device(true));
+    line++;
+    wattroff(pad, A_BOLD);
 
     const int drm_fd = open_primary_drm_device();
     if (drm_fd < 0)
@@ -44,7 +36,7 @@ void displaySummary(WINDOW *pad, const char *name, int *content_line)
 
     int col_width = 10;
     mvwprintw(pad, line++, 2, "CRTC ID   |");
-    for (int i = 0; i < resources->count_connectors; i++)
+    for (int i = 0; i < resources->count_crtcs; i++)
     {
         crtc = drmModeGetCrtc(drm_fd, resources->crtcs[i]);
 

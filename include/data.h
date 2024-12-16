@@ -3,17 +3,24 @@
 
 #include "node.h"
 
+/*
+ * The root node of the tree
+ */
 extern Node *root;
+
+// Nodes for the display configuration
 extern Node *crtcPages;
 extern Node *connectorPages;
 extern Node *encoderPages;
 extern Node *framebufferPages;
 extern Node *planePages;
 
-extern Node *displayConfig; 
+
+extern Node *displayConfig;
 extern Node *gpuInfoMenu;
 extern Node *powerManagementMenu;
 
+extern Node *displayDebugfs;
 extern Node *mainMenu;
 
 extern Node displayConfigPages[];
@@ -36,5 +43,4 @@ extern size_t driverModuleInfoPagesSize;
 extern size_t internalClientInfoPagesSize;
 extern size_t systemStatePagesSize;
 
-
-#endif 
+#endif

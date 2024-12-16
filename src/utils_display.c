@@ -74,6 +74,7 @@ int check_size_change(WINDOW *win, int *height, int *width)
 {
     int new_height, new_width;
     getmaxyx(win, new_height, new_width);
+    move(1, 25);
     if (new_height != *height || new_width != *width)
     {
         *height = new_height;

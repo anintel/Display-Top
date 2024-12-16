@@ -10,6 +10,7 @@ Node *framebufferPages;
 Node *planePages;
 
 Node *displayConfig;
+Node *displayDebugfs;
 Node *gpuInfoMenu;
 
 Node gpuInfoPages[] = {

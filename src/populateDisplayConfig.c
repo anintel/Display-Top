@@ -359,7 +359,7 @@ int initializePlanes()
 
 // Todo: fix up the unwanted opening and closing of drm and streamline the node
 // creation for the connectors, encoders, framebuffers, and planes
-void initializedisplayConfig()
+void initializeDisplayConfig()
 {
     displayConfig = createNode("Display Configuration", NULL, root);
     if (!displayConfig)
@@ -393,4 +393,6 @@ void initializedisplayConfig()
     }
 
     addChild(displayConfig, OtherInfo);
+    
+    addChild(root, displayConfig);
 }

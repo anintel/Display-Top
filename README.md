@@ -1,5 +1,5 @@
-# Display Top, A comphrehensive tool to see what's happening under the hood of your display.
+# Display Top: A Comprehensive Tool to See What's Happening Under the Hood of Your Display
 
-## Steps to run the tool
-1. make
-2. ./build/displayTop
+## Steps to Run the Tool
+1. `make`
+2. `./build/displayTop`
